@@ -5,7 +5,8 @@ const bcrypt = require('bcrypt');
 module.exports = {
   async up(queryInterface) {
     const adminHash = bcrypt.hashSync('Admin@123', 12);
-    const userHash = bcrypt.hashSync('User@123', 12);
+    const createHash = bcrypt.hashSync('Create@123', 12);
+    const viewHash = bcrypt.hashSync('View@123', 12);
     const now = new Date();
 
     await queryInterface.bulkInsert('users', [
@@ -19,7 +20,7 @@ module.exports = {
       },
       {
         email: 'view@example.com',
-        password_hash: userHash,
+        password_hash: viewHash,
         role: 'USER',
         access: 'VIEW',
         created_at: now,
@@ -27,7 +28,7 @@ module.exports = {
       },
       {
         email: 'create@example.com',
-        password_hash: userHash,
+        password_hash: createHash,
         role: 'USER',
         access: 'CREATE',
         created_at: now,
