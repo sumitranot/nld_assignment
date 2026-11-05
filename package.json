@@ -1,0 +1,36 @@
+{
+  "name": "nld-assignment-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-Stack E-Commerce & Logistics Platform (React + Express + PostgreSQL)",
+  "scripts": {
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "cd backend && npm install && npm run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "vercel-build": "npm run build:backend && npm run build:frontend",
+    "db:migrate": "cd backend && npx sequelize-cli db:migrate",
+    "db:seed": "cd backend && npx sequelize-cli db:seed:all",
+    "test": "cd backend && npm test && cd ../frontend && npm test -- --run"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "pg-hstore": "^2.3.4",
+    "pino": "^9.5.0",
+    "sequelize": "^6.37.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.1",
+    "@vercel/node": "^3.2.32",
+    "typescript": "^5.7.2"
+  }
+}

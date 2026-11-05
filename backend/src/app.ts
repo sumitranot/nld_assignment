@@ -72,6 +72,14 @@ app.use('/auth', authRoutes);
 app.use('/products', productsRoutes);
 app.use('/orders', ordersRoutes);
 
+// Mirror under /api for serverless routing
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productsRoutes);
+app.use('/api/orders', ordersRoutes);
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Catch 404 for unhandled routes
 app.use(notFound);
 

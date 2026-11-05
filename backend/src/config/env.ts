@@ -7,11 +7,14 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
 
-  DB_HOST: z.string().min(1),
+  DATABASE_URL: z.string().optional(),
+  POSTGRES_URL: z.string().optional(),
+
+  DB_HOST: z.string().default('localhost'),
   DB_PORT: z.coerce.number().int().positive().default(5432),
-  DB_NAME: z.string().min(1),
-  DB_USER: z.string().min(1),
-  DB_PASSWORD: z.string().min(1),
+  DB_NAME: z.string().default('nld_db'),
+  DB_USER: z.string().default('nld_user'),
+  DB_PASSWORD: z.string().default('nld_password'),
 
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('24h'),

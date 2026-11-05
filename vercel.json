@@ -1,0 +1,77 @@
+{
+  "version": 2,
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/auth/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/auth",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/products",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "(.*)text/html(.*)"
+        }
+      ],
+      "destination": "/index.html"
+    },
+    {
+      "source": "/products",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/products/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/orders",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "(.*)text/html(.*)"
+        }
+      ],
+      "destination": "/index.html"
+    },
+    {
+      "source": "/orders",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/orders/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/docs/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/docs",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
