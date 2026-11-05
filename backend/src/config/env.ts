@@ -9,6 +9,7 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().optional(),
   POSTGRES_URL: z.string().optional(),
+  STORAGE_URL: z.string().optional(),
 
   DB_HOST: z.string().default('localhost'),
   DB_PORT: z.coerce.number().int().positive().default(5432),

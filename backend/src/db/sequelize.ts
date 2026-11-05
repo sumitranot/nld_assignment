@@ -2,7 +2,7 @@ import { Sequelize } from 'sequelize';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 
-const databaseUrl = env.DATABASE_URL || env.POSTGRES_URL;
+const databaseUrl = env.DATABASE_URL || env.POSTGRES_URL || env.STORAGE_URL;
 
 export const sequelize = databaseUrl
   ? new Sequelize(databaseUrl, {

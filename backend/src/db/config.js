@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.STORAGE_URL;
 
 const baseConfig = dbUrl
   ? {
