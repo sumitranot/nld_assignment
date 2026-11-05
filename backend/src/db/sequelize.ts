@@ -2,7 +2,18 @@ import { Sequelize } from 'sequelize';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 
-const databaseUrl = env.DATABASE_URL || env.POSTGRES_URL || env.STORAGE_URL;
+const NEON_DEFAULT_URL =
+  'postgresql://neondb_owner:npg_Pu0jqMhtE6li@ep-winter-lake-bb2v4imt-pooler.c-15.us-east-1.aws.neon.tech/neondb?sslmode=require';
+
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.STORAGE_URL ||
+  env.DATABASE_URL ||
+  env.POSTGRES_URL ||
+  env.STORAGE_URL ||
+  (process.env.VERCEL ? NEON_DEFAULT_URL : undefined);
 
 export const sequelize = databaseUrl
   ? new Sequelize(databaseUrl, {
@@ -47,4 +58,3 @@ export const sequelize = databaseUrl
         timestamps: true,
       },
     });
-
