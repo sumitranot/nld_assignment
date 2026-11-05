@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Spinner } from './ui/Spinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,12 +14,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminO
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
-            Authenticating session...
-          </p>
-        </div>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          gap: 'var(--space-3)',
+        }}
+      >
+        <Spinner size="lg" ariaLabel="Authenticating session..." />
+        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)' }}>
+          Authenticating session...
+        </span>
       </div>
     );
   }
@@ -28,24 +37,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminO
   }
 
   if (adminOnly && !isAdmin) {
-    return (
-      <div className="container" style={{ padding: 'var(--space-8) 0' }}>
-        <div className="card" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-          <div className="badge badge--cancelled" style={{ marginBottom: 'var(--space-3)' }}>
-            Access Restricted
-          </div>
-          <h2 style={{ marginBottom: 'var(--space-2)' }}>Administrator Access Required</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-            This section is restricted to accounts with the ADMIN role.
-          </p>
-          <a href="/products" className="btn btn--primary">
-            Return to Products Catalog
-          </a>
-        </div>
-      </div>
-    );
+    return <Navigate to="/403" replace />;
   }
 
   return <>{children}</>;
 };
-

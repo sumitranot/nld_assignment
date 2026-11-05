@@ -1,0 +1,143 @@
+.splitLayout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--bg-page);
+}
+
+.brandPanel {
+  display: none;
+  width: 45%;
+  background: linear-gradient(135deg, #075985 0%, #0284c7 60%, #0369a1 100%);
+  color: #ffffff;
+  padding: var(--space-12) var(--space-10);
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .brandPanel {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%);
+  border-right: 1px solid var(--border-default);
+}
+
+.brandPanelPattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.brandLogo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-2xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brandPitch {
+  margin: auto 0;
+  max-width: 420px;
+}
+
+.pitchHeading {
+  font-size: var(--font-3xl);
+  font-weight: 800;
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+.pitchDesc {
+  font-size: var(--font-base);
+  color: rgba(255, 255, 255, 0.85);
+  line-height: var(--leading-relaxed);
+}
+
+.pitchFeatures {
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pitchItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-sm);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.brandFooter {
+  font-size: var(--font-xs);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.formPanel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+}
+
+.formCard {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-lg);
+}
+
+.formHeader {
+  margin-bottom: var(--space-6);
+  text-align: center;
+}
+
+.formTitle {
+  font-size: var(--font-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.formSubtitle {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+.demoLogins {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.demoTitle {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+  text-align: center;
+}
+
+.demoButtons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+@media (min-width: 1024px) {
+  .brandPanel {
+    display: flex;
+  }
+}

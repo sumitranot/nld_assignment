@@ -1,0 +1,42 @@
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  overflow: hidden;
+  height: 36px;
+  box-shadow: var(--shadow-xs);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 100%;
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.button:hover:not(:disabled) {
+  background-color: var(--bg-muted);
+}
+
+.button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.value {
+  min-width: 40px;
+  padding: 0 var(--space-2);
+  text-align: center;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  user-select: none;
+}

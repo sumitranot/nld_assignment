@@ -1,485 +1,435 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { getOrders, getOrderById, cancelOrder, confirmOrder } from '../../api/orders.api';
-import { OrderListItem, Order, OrderStatus, PaginationMeta } from '../../api/types';
+import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { FileText, Eye, Ban, RotateCcw } from 'lucide-react';
+import { getOrders, cancelOrder } from '../../api/orders.api';
+import { orderKeys, productKeys } from '../../app/QueryClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Spinner } from '../../components/Spinner';
-import { Pagination } from '../../components/Pagination';
-import { Modal } from '../../components/Modal';
-import { getProductMetadata } from '../../utils/productImages';
+import { Tabs, TabItem } from '../../components/ui/Tabs';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { Pagination } from '../../components/ui/Pagination';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { Tooltip } from '../../components/ui/Tooltip';
+import { OrderDetailDrawer } from './OrderDetailDrawer';
+import { formatDate, formatPrice } from '../../lib/formatters';
+import { OrderStatus, OrderListItem } from '../../api/types';
+import styles from './OrdersPage.module.css';
 
 export const OrdersPage: React.FC = () => {
   const { user } = useAuth();
   const { success, error: toastError } = useToast();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [orders, setOrders] = useState<OrderListItem[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta>({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 1,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // URL State
+  const pageParam = parseInt(searchParams.get('page') || '1', 10);
+  const limitParam = parseInt(searchParams.get('limit') || '10', 10);
+  const statusParam = (searchParams.get('status') as OrderStatus) || '';
+  const fromParam = searchParams.get('from') || '';
+  const toParam = searchParams.get('to') || '';
 
-  // Filters
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-
-  // Selected Order for Detail Modal
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-
-  // Order to cancel modal state
+  // Local drawer and modal state
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<OrderListItem | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
 
-  // Order to confirm modal/state (Admin only)
-  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
+  const isViewOnly = user?.role === 'USER' && user?.access === 'VIEW';
 
-  const fetchOrders = useCallback(
-    async (pageToFetch = 1) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await getOrders({
-          page: pageToFetch,
-          limit: meta.limit,
-          status: statusFilter ? statusFilter : undefined,
-          from: fromDate || undefined,
-          to: toDate || undefined,
-        });
-        setOrders(response.data);
-        setMeta(response.meta);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load orders';
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
+  // TanStack Query for Orders
+  const queryFilters = {
+    page: pageParam,
+    limit: limitParam,
+    status: statusParam || undefined,
+    from: fromParam || undefined,
+    to: toParam || undefined,
+  };
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: orderKeys.list(queryFilters),
+    queryFn: () => getOrders(queryFilters),
+    placeholderData: keepPreviousData,
+  });
+
+  // Cancel order mutation with optimistic UI rollback
+  const cancelMutation = useMutation({
+    mutationFn: (orderId: number) => cancelOrder(orderId),
+    onSuccess: (updatedOrder) => {
+      success(`Order #${updatedOrder.orderNumber} was cancelled.`, 'Order Cancelled');
+      setCancellingOrder(null);
+      // Invalidate both orders and products to restore stock
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
     },
-    [statusFilter, fromDate, toDate, meta.limit],
-  );
+    onError: (err: unknown) => {
+      const msg = err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : 'Failed to cancel order.';
+      toastError(msg, 'Cancellation Failed');
+    },
+  });
 
-  useEffect(() => {
-    fetchOrders(1);
-  }, [fetchOrders]);
+  // Tab definitions
+  const statusTabs: TabItem[] = [
+    { id: '', label: 'All Orders' },
+    { id: 'PENDING', label: 'Pending' },
+    { id: 'CONFIRMED', label: 'Confirmed' },
+    { id: 'CANCELLED', label: 'Cancelled' },
+  ];
 
-  const handlePageChange = (newPage: number) => {
-    fetchOrders(newPage);
+  const handleStatusTabChange = (newStatus: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newStatus) {
+        next.set('status', newStatus);
+      } else {
+        next.delete('status');
+      }
+      next.set('page', '1');
+      return next;
+    });
+  };
+
+  const handleDateChange = (key: 'from' | 'to', value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) {
+        next.set(key, value);
+      } else {
+        next.delete(key);
+      }
+      next.set('page', '1');
+      return next;
+    });
   };
 
   const handleResetFilters = () => {
-    setStatusFilter('');
-    setFromDate('');
-    setToDate('');
+    setSearchParams({ page: '1', limit: String(limitParam) });
   };
 
-  // Open Order Detail modal
-  const handleViewDetails = async (orderId: number) => {
-    setLoadingDetails(true);
-    setSelectedOrder(null);
-    try {
-      const order = await getOrderById(orderId);
-      setSelectedOrder(order);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load order details';
-      toastError(message);
-    } finally {
-      setLoadingDetails(false);
-    }
+  const handlePageChange = (newPage: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('page', String(newPage));
+      return next;
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Confirm Order (Admin action)
-  const handleConfirmOrder = async (orderId: number) => {
-    setConfirmingOrderId(orderId);
-    try {
-      await confirmOrder(orderId);
-      success('Order confirmed successfully');
-      fetchOrders(meta.page);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to confirm order';
-      toastError(message);
-    } finally {
-      setConfirmingOrderId(null);
-    }
-  };
-
-  // Cancel Order action
-  const handleConfirmCancel = async () => {
-    if (!cancellingOrder) return;
-
-    setIsCancelling(true);
-    try {
-      await cancelOrder(cancellingOrder.id);
-      success(`Order #${cancellingOrder.orderNumber} cancelled. Reserved stock restored.`);
-      setCancellingOrder(null);
-      fetchOrders(meta.page);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to cancel order';
-      toastError(message);
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
-  const getStatusBadge = (status: OrderStatus) => {
-    switch (status) {
-      case 'CONFIRMED':
-        return <span className="badge badge--confirmed">Confirmed</span>;
-      case 'CANCELLED':
-        return <span className="badge badge--cancelled">Cancelled</span>;
-      case 'PENDING':
-      default:
-        return <span className="badge badge--pending">Pending</span>;
-    }
+  const handleLimitChange = (newLimit: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('limit', String(newLimit));
+      next.set('page', '1');
+      return next;
+    });
   };
 
   return (
     <div>
-      <div className="toolbar">
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700 }}>Orders Management</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)', marginTop: 2 }}>
-            Track order fulfillment statuses and monitor inventory allocations
-          </p>
+      {/* Header */}
+      <div className={styles.header}>
+        <div className={styles.titleRow}>
+          <div>
+            <h1 className={styles.title}>Orders Management</h1>
+            <p className={styles.subtitle}>
+              Monitor procurement statuses, track line items, and audit inventory allocations
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Filter Bar */}
-      <div className="card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-4)' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)', alignItems: 'flex-end' }}>
-          <div>
-            <label className="form-label" htmlFor="status-filter">
-              Status
-            </label>
-            <select
-              id="status-filter"
-              className="form-select"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as OrderStatus | '')}
-              style={{ minWidth: 150 }}
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING">PENDING</option>
-              <option value="CONFIRMED">CONFIRMED</option>
-              <option value="CANCELLED">CANCELLED</option>
-            </select>
-          </div>
+        {/* Status Tabs and Date Range Filter Card */}
+        <div className={styles.filterCard}>
+          <Tabs
+            tabs={statusTabs}
+            activeId={statusParam}
+            onChange={handleStatusTabChange}
+            variant="pills"
+          />
 
-          <div>
-            <label className="form-label" htmlFor="from-filter">
-              From Date
-            </label>
-            <input
-              id="from-filter"
-              type="date"
-              className="form-input"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-          </div>
+          <div className={styles.dateFilterRow}>
+            <div className={styles.dateInputGroup}>
+              <span className={styles.dateLabel}>From:</span>
+              <input
+                type="date"
+                value={fromParam}
+                onChange={(e) => handleDateChange('from', e.target.value)}
+                style={{
+                  height: 32,
+                  padding: '0 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-default)',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
+                  fontSize: 'var(--font-xs)',
+                }}
+              />
+            </div>
 
-          <div>
-            <label className="form-label" htmlFor="to-filter">
-              To Date
-            </label>
-            <input
-              id="to-filter"
-              type="date"
-              className="form-input"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </div>
+            <div className={styles.dateInputGroup}>
+              <span className={styles.dateLabel}>To:</span>
+              <input
+                type="date"
+                value={toParam}
+                onChange={(e) => handleDateChange('to', e.target.value)}
+                style={{
+                  height: 32,
+                  padding: '0 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-default)',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
+                  fontSize: 'var(--font-xs)',
+                }}
+              />
+            </div>
 
-          {(statusFilter || fromDate || toDate) && (
-            <div>
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm"
+            {(statusParam || fromParam || toParam) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<RotateCcw size={14} />}
                 onClick={handleResetFilters}
               >
                 Reset Filters
-              </button>
-            </div>
-          )}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Error Alert */}
-      {error && (
-        <div className="alert alert--danger" role="alert">
-          <span>{error}</span>
-          <button
-            type="button"
-            className="btn btn--sm btn--secondary"
-            style={{ marginLeft: 16 }}
-            onClick={() => fetchOrders(meta.page)}
-          >
-            Retry
-          </button>
+      {/* Main Content */}
+      {isError ? (
+        <ErrorState
+          title="Failed to Load Orders"
+          message={error instanceof Error ? error.message : 'Unable to connect to order management server.'}
+          onRetry={() => refetch()}
+        />
+      ) : isLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} variant="rect" height={64} />
+          ))}
         </div>
-      )}
-
-      {/* Loading State */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '60px 0' }}>
-          <Spinner size="lg" ariaLabel="Loading orders..." />
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="empty-state card">
-          <div className="empty-state__icon">&#128230;</div>
-          <h2 className="empty-state__title">No orders found</h2>
-          <p className="empty-state__desc">
-            {statusFilter || fromDate || toDate
-              ? 'No orders matched your selected filter criteria.'
-              : 'You have not placed any orders yet.'}
-          </p>
-        </div>
+      ) : data?.data.length === 0 ? (
+        <EmptyState
+          icon={<FileText size={36} />}
+          title="No orders found"
+          description={
+            statusParam || fromParam || toParam
+              ? 'No orders match your selected filter criteria. Try clearing date filters or switching status tabs.'
+              : 'You have not placed any orders yet. Visit the catalog to create your first order.'
+          }
+          action={
+            statusParam || fromParam || toParam ? (
+              <Button variant="secondary" onClick={handleResetFilters}>
+                Clear All Filters
+              </Button>
+            ) : null
+          }
+        />
       ) : (
         <>
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Order #</th>
-                  <th>Date</th>
-                  {user?.role === 'ADMIN' && <th>Customer</th>}
-                  <th>Status</th>
-                  <th>Items / Lines</th>
-                  <th>Total Amount</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => {
-                  const isEligibleForCancel = order.status === 'PENDING' || order.status === 'CONFIRMED';
-                  const isEligibleForConfirm = user?.role === 'ADMIN' && order.status === 'PENDING';
-                  const formattedDate = new Date(order.createdAt).toLocaleString(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
-
-                  return (
-                    <tr key={order.id}>
-                      <td style={{ fontWeight: 600 }}>{order.orderNumber}</td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)' }}>
-                        {formattedDate}
-                      </td>
-                      {user?.role === 'ADMIN' && (
-                        <td>
-                          <span style={{ fontSize: 'var(--font-size-xs)' }}>
-                            {order.user?.email || `User #${order.userId}`}
-                          </span>
-                        </td>
-                      )}
-                      <td>{getStatusBadge(order.status)}</td>
-                      <td>
-                        {order.itemCount} units ({order.lineCount} {order.lineCount === 1 ? 'line' : 'lines'})
-                      </td>
-                      <td style={{ fontWeight: 600 }}>${order.totalAmount}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                          <button
-                            type="button"
-                            className="btn btn--secondary btn--sm"
-                            onClick={() => handleViewDetails(order.id)}
-                          >
-                            Details
-                          </button>
-
-                          {isEligibleForConfirm && (
-                            <button
-                              type="button"
-                              className="btn btn--primary btn--sm"
-                              disabled={confirmingOrderId === order.id}
-                              onClick={() => handleConfirmOrder(order.id)}
-                            >
-                              {confirmingOrderId === order.id ? (
-                                <Spinner size="sm" ariaLabel="Confirming..." />
-                              ) : (
-                                'Confirm'
-                              )}
-                            </button>
-                          )}
-
-                          {isEligibleForCancel && (
-                            <button
-                              type="button"
-                              className="btn btn--danger btn--sm"
-                              onClick={() => setCancellingOrder(order)}
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <Pagination
-            page={meta.page}
-            totalPages={meta.totalPages}
-            total={meta.total}
-            onPageChange={handlePageChange}
-          />
-        </>
-      )}
-
-      {/* Order Detail Modal */}
-      <Modal
-        isOpen={Boolean(selectedOrder || loadingDetails)}
-        onClose={() => setSelectedOrder(null)}
-        title={selectedOrder ? `Order #${selectedOrder.orderNumber}` : 'Loading Order...'}
-        footer={
-          <button
-            type="button"
-            className="btn btn--secondary"
-            onClick={() => setSelectedOrder(null)}
-          >
-            Close
-          </button>
-        }
-      >
-        {loadingDetails ? (
-          <div style={{ textAlign: 'center', padding: '30px 0' }}>
-            <Spinner size="md" ariaLabel="Loading details..." />
-          </div>
-        ) : selectedOrder ? (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>Status</div>
-                <div style={{ marginTop: 2 }}>{getStatusBadge(selectedOrder.status)}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>Created</div>
-                <div style={{ fontSize: 'var(--font-size-sm)', marginTop: 2 }}>
-                  {new Date(selectedOrder.createdAt).toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            <div className="table-wrapper" style={{ marginTop: 16 }}>
-              <table className="table">
+          {/* Desktop Table View */}
+          <div className={styles.desktopTable}>
+            <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>SKU</th>
-                    <th>Price</th>
-                    <th>Qty</th>
-                    <th>Subtotal</th>
+                  <tr style={{ backgroundColor: 'var(--bg-muted)', borderBottom: '1px solid var(--border-default)' }}>
+                    <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                      ORDER #
+                    </th>
+                    <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                      DATE
+                    </th>
+                    {user?.role === 'ADMIN' && (
+                      <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                        CUSTOMER
+                      </th>
+                    )}
+                    <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                      STATUS
+                    </th>
+                    <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                      UNITS / LINES
+                    </th>
+                    <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                      TOTAL
+                    </th>
+                    <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                      ACTIONS
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedOrder.items?.map((item) => {
-                    const priceCents = Math.round(parseFloat(item.unitPrice) * 100);
-                    const subtotal = ((priceCents * item.quantity) / 100).toFixed(2);
-                    const meta = getProductMetadata(item.product?.sku ?? '', item.product?.name ?? '', item.product?.imageUrl);
+                  {data?.data.map((order) => {
+                    const isCancelled = order.status === 'CANCELLED';
+                    const canCancel = !isCancelled && !isViewOnly;
+                    const cancelReason = isViewOnly
+                      ? 'VIEW-only access cannot cancel orders'
+                      : isCancelled
+                      ? 'Order is already cancelled'
+                      : '';
 
                     return (
-                      <tr key={item.id}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <img
-                              src={meta.image}
-                              alt={item.product?.name ?? 'Product'}
-                              className="product-thumb product-thumb--sm"
-                              loading="lazy"
-                            />
-                            <div>
-                              <div style={{ fontWeight: 600 }}>{item.product?.name ?? `Product #${item.productId}`}</div>
-                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
-                                {meta.category}
-                              </div>
-                            </div>
+                      <tr key={order.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                        <td style={{ padding: 'var(--space-4)', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--primary)', fontSize: 'var(--font-sm)' }}>
+                          {order.orderNumber}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--font-sm)' }}>
+                          {formatDate(order.createdAt)}
+                        </td>
+                        {user?.role === 'ADMIN' && (
+                          <td style={{ padding: 'var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
+                            {order.user?.email ?? `User #${order.userId}`}
+                          </td>
+                        )}
+                        <td style={{ padding: 'var(--space-4)' }}>
+                          <StatusBadge status={order.status} />
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--font-sm)' }}>
+                          {order.itemCount} units ({order.lineCount} lines)
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontWeight: 700, fontSize: 'var(--font-sm)' }}>
+                          {formatPrice(order.totalAmount)}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: 'var(--space-2)' }}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              leftIcon={<Eye size={14} />}
+                              onClick={() => setSelectedOrderId(order.id)}
+                            >
+                              Details
+                            </Button>
+
+                            <Tooltip content={cancelReason}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={!canCancel}
+                                style={canCancel ? { color: 'var(--color-danger)', borderColor: 'var(--color-danger-border)' } : undefined}
+                                onClick={() => setCancellingOrder(order)}
+                              >
+                                Cancel
+                              </Button>
+                            </Tooltip>
                           </div>
                         </td>
-                        <td style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                          {item.product?.sku ?? '-'}
-                        </td>
-                        <td>${item.unitPrice}</td>
-                        <td>{item.quantity}</td>
-                        <td style={{ fontWeight: 600 }}>${subtotal}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                marginTop: 16,
-                fontSize: 'var(--font-size-base)',
-              }}
-            >
-              <span>
-                Grand Total:{' '}
-                <strong style={{ fontSize: 'var(--font-size-lg)', color: 'var(--primary-dark)' }}>
-                  ${selectedOrder.totalAmount}
-                </strong>
-              </span>
-            </div>
           </div>
-        ) : null}
-      </Modal>
+
+          {/* Mobile Card Layout */}
+          <div className={styles.mobileCards}>
+            {data?.data.map((order) => {
+              const isCancelled = order.status === 'CANCELLED';
+              const canCancel = !isCancelled && !isViewOnly;
+
+              return (
+                <div key={order.id} className={styles.orderCard}>
+                  <div className={styles.orderCardHeader}>
+                    <span className={styles.orderNumber}>{order.orderNumber}</span>
+                    <StatusBadge status={order.status} />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
+                    <span>{formatDate(order.createdAt)}</span>
+                    <span>{order.itemCount} units ({order.lineCount} lines)</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                    <span style={{ fontWeight: 800, fontSize: 'var(--font-base)', color: 'var(--text-primary)' }}>
+                      {formatPrice(order.totalAmount)}
+                    </span>
+
+                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setSelectedOrderId(order.id)}
+                      >
+                        Details
+                      </Button>
+                      {canCancel && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => setCancellingOrder(order)}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {data?.meta && (
+            <Pagination
+              page={data.meta.page}
+              totalPages={data.meta.totalPages}
+              total={data.meta.total}
+              limit={data.meta.limit}
+              onPageChange={handlePageChange}
+              onLimitChange={handleLimitChange}
+            />
+          )}
+        </>
+      )}
+
+      {/* Order Detail Drawer */}
+      <OrderDetailDrawer
+        orderId={selectedOrderId}
+        onClose={() => setSelectedOrderId(null)}
+      />
 
       {/* Cancellation Confirmation Modal */}
       <Modal
         isOpen={Boolean(cancellingOrder)}
-        onClose={() => !isCancelling && setCancellingOrder(null)}
+        onClose={() => !cancelMutation.isPending && setCancellingOrder(null)}
         title="Confirm Order Cancellation"
         footer={
           <>
-            <button
-              type="button"
-              className="btn btn--secondary"
-              disabled={isCancelling}
+            <Button
+              variant="secondary"
+              disabled={cancelMutation.isPending}
               onClick={() => setCancellingOrder(null)}
             >
               Keep Order
-            </button>
-            <button
-              type="button"
-              className="btn btn--danger"
-              disabled={isCancelling}
-              onClick={handleConfirmCancel}
+            </Button>
+            <Button
+              variant="danger"
+              leftIcon={<Ban size={16} />}
+              loading={cancelMutation.isPending}
+              onClick={() => cancellingOrder && cancelMutation.mutate(cancellingOrder.id)}
             >
-              {isCancelling ? (
-                <>
-                  <Spinner size="sm" ariaLabel="Cancelling..." />
-                  <span>Cancelling...</span>
-                </>
-              ) : (
-                'Yes, Cancel Order'
-              )}
-            </button>
+              Yes, Cancel Order
+            </Button>
           </>
         }
       >
-        <p style={{ color: 'var(--text-main)', marginBottom: 12 }}>
+        <p style={{ color: 'var(--text-primary)', marginBottom: 'var(--space-3)' }}>
           Are you sure you want to cancel order{' '}
-          <strong>#{cancellingOrder?.orderNumber}</strong>?
+          <strong style={{ fontFamily: 'var(--font-mono)' }}>#{cancellingOrder?.orderNumber}</strong>?
         </p>
-        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
-          This will set the order status to <strong>CANCELLED</strong> and automatically restore{' '}
-          <strong>{cancellingOrder?.itemCount}</strong> reserved inventory units back to warehouse stock.
-          This action cannot be undone.
+        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)' }}>
+          Cancelling will immediately release all reserved items back into the warehouse inventory catalog. This action cannot be undone.
         </p>
       </Modal>
     </div>
   );
 };
+
+export default OrdersPage;

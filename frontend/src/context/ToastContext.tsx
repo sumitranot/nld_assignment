@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import styles from '../components/ui/Toast.module.css';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
 
 export interface ToastItem {
   id: string;
@@ -8,13 +15,14 @@ export interface ToastItem {
   message: string;
   title?: string;
   duration?: number;
+  action?: ToastAction;
 }
 
 interface ToastContextType {
   toasts: ToastItem[];
-  addToast: (type: ToastType, message: string, title?: string, duration?: number) => void;
+  addToast: (type: ToastType, message: string, title?: string, duration?: number, action?: ToastAction) => void;
   removeToast: (id: string) => void;
-  success: (message: string, title?: string) => void;
+  success: (message: string, title?: string, action?: ToastAction) => void;
   error: (message: string, title?: string) => void;
   warning: (message: string, title?: string) => void;
   info: (message: string, title?: string) => void;
@@ -30,9 +38,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const addToast = useCallback(
-    (type: ToastType, message: string, title?: string, duration = 4000) => {
+    (type: ToastType, message: string, title?: string, duration = 4000, action?: ToastAction) => {
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      const newToast: ToastItem = { id, type, message, title, duration };
+      const newToast: ToastItem = { id, type, message, title, duration, action };
 
       setToasts((prev) => [...prev, newToast]);
 
@@ -46,22 +54,23 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const success = useCallback(
-    (message: string, title?: string) => addToast('success', message, title ?? 'Success'),
+    (message: string, title?: string, action?: ToastAction) =>
+      addToast('success', message, title ?? 'Success', 4000, action),
     [addToast],
   );
 
   const error = useCallback(
-    (message: string, title?: string) => addToast('error', message, title ?? 'Error'),
+    (message: string, title?: string) => addToast('error', message, title ?? 'Error', 6000),
     [addToast],
   );
 
   const warning = useCallback(
-    (message: string, title?: string) => addToast('warning', message, title ?? 'Warning'),
+    (message: string, title?: string) => addToast('warning', message, title ?? 'Warning', 5000),
     [addToast],
   );
 
   const info = useCallback(
-    (message: string, title?: string) => addToast('info', message, title ?? 'Info'),
+    (message: string, title?: string) => addToast('info', message, title ?? 'Notice', 4000),
     [addToast],
   );
 
@@ -78,27 +87,53 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [toasts, addToast, removeToast, success, error, warning, info],
   );
 
+  const getIcon = (type: ToastType) => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle2 size={18} style={{ color: 'var(--color-success)', flexShrink: 0, marginTop: 2 }} />;
+      case 'error':
+        return <AlertCircle size={18} style={{ color: 'var(--color-danger)', flexShrink: 0, marginTop: 2 }} />;
+      case 'warning':
+        return <AlertTriangle size={18} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 2 }} />;
+      case 'info':
+        return <Info size={18} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />;
+    }
+  };
+
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="toast-container" aria-live="polite" aria-atomic="true">
+      <div className={styles.container} aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role={toast.type === 'error' ? 'alert' : 'status'}
-            className={`toast toast--${toast.type}`}
+            className={`${styles.toast} ${styles[toast.type]}`}
           >
-            <div className="toast__content">
-              {toast.title && <div className="toast__title">{toast.title}</div>}
-              <div className="toast__message">{toast.message}</div>
+            {getIcon(toast.type)}
+            <div className={styles.content}>
+              {toast.title && <div className={styles.title}>{toast.title}</div>}
+              <div className={styles.message}>{toast.message}</div>
+              {toast.action && (
+                <button
+                  type="button"
+                  className={styles.undoButton}
+                  onClick={() => {
+                    toast.action?.onClick();
+                    removeToast(toast.id);
+                  }}
+                >
+                  {toast.action.label}
+                </button>
+              )}
             </div>
             <button
               type="button"
-              className="toast__close"
-              aria-label="Close notification"
+              className={styles.closeButton}
+              aria-label="Dismiss notification"
               onClick={() => removeToast(toast.id)}
             >
-              &times;
+              <X size={15} />
             </button>
           </div>
         ))}
@@ -115,4 +150,3 @@ export const useToast = (): ToastContextType => {
   }
   return context;
 };
-

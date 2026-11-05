@@ -1,0 +1,121 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: inherit;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+              border-color var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard),
+              box-shadow var(--duration-fast) var(--ease-standard),
+              transform var(--duration-fast) var(--ease-standard);
+  position: relative;
+  text-decoration: none;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Sizes */
+.sm {
+  height: 32px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-xs);
+}
+
+.md {
+  height: 40px;
+  padding: 0 var(--space-4);
+  font-size: var(--font-sm);
+}
+
+.lg {
+  height: 48px;
+  padding: 0 var(--space-6);
+  font-size: var(--font-base);
+}
+
+/* Variants */
+.primary {
+  background-color: var(--primary);
+  color: var(--primary-contrast);
+  box-shadow: var(--shadow-xs);
+}
+.primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  box-shadow: var(--shadow-sm);
+}
+.primary:active:not(:disabled) {
+  background-color: var(--primary-active);
+}
+
+.secondary {
+  background-color: var(--bg-surface);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+.secondary:hover:not(:disabled) {
+  background-color: var(--bg-muted);
+  border-color: var(--border-strong);
+}
+
+.outline {
+  background-color: transparent;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.outline:hover:not(:disabled) {
+  background-color: var(--primary-light);
+}
+
+.ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+.ghost:hover:not(:disabled) {
+  background-color: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+.danger {
+  background-color: var(--color-danger);
+  color: #ffffff;
+  box-shadow: var(--shadow-xs);
+}
+.danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.loading {
+  position: relative;
+  color: transparent !important;
+}
+
+.loadingSpinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

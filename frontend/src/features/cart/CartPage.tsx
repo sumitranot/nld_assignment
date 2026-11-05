@@ -1,236 +1,347 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+  ShoppingBag,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  ShieldAlert,
+} from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { createOrder } from '../../api/orders.api';
-import { Spinner } from '../../components/Spinner';
-import { getProductMetadata } from '../../utils/productImages';
-
-interface StockConflictItem {
-  sku: string;
-  requested: number;
-  available: number;
-}
+import { invalidateOrdersAndProducts } from '../../app/QueryClient';
+import { SkuGradient } from '../../components/ui/SkuGradient';
+import { QuantityStepper } from '../../components/ui/QuantityStepper';
+import { Button } from '../../components/ui/Button';
+import { IconButton } from '../../components/ui/IconButton';
+import { Modal } from '../../components/ui/Modal';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { formatPrice } from '../../lib/formatters';
+import { Order, StockConflictItem, NormalizedApiError } from '../../api/types';
+import styles from './CartPage.module.css';
 
 export const CartPage: React.FC = () => {
-  const { items, updateQty, removeFromCart, clearCart, itemCount, totalAmount } = useCart();
+  const { items, updateQty, removeFromCart, clearCart, itemCount, lineCount, totalAmount } =
+    useCart();
   const { user } = useAuth();
-  const { success, error: toastError } = useToast();
+  const { toastError, success } = {
+    toastError: useToast().error,
+    success: useToast().success,
+  };
   const navigate = useNavigate();
 
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const [stockConflicts, setStockConflicts] = useState<Map<string, StockConflictItem>>(new Map());
 
   const isViewOnly = user?.role === 'USER' && user?.access === 'VIEW';
 
-  const handleCheckout = async () => {
-    if (items.length === 0 || isSubmitting || isViewOnly) return;
+  const handleOpenConfirm = () => {
+    if (items.length === 0 || isViewOnly) return;
+    setIsConfirmModalOpen(true);
+  };
 
+  const handleExecuteCheckout = async () => {
     setIsSubmitting(true);
-    setErrorMessage(null);
     setStockConflicts(new Map());
 
     try {
       const payload = {
-        items: items.map((item) => ({
-          sku: item.sku,
-          qty: item.qty,
+        items: items.map((i) => ({
+          sku: i.sku,
+          qty: i.qty,
         })),
       };
 
-      const createdOrder = await createOrder(payload);
+      const order = await createOrder(payload);
+      await invalidateOrdersAndProducts();
 
       clearCart();
-      success(`Order #${createdOrder.orderNumber} placed successfully!`, 'Order Confirmed');
-      navigate('/orders');
+      setIsConfirmModalOpen(false);
+      setConfirmedOrder(order);
+      success(`Order #${order.orderNumber} successfully placed!`, 'Order Confirmed');
     } catch (err: unknown) {
-      // Check for 409 Conflict with insufficientItems
-      const axiosError = err as {
-        response?: {
-          status?: number;
-          data?: {
-            error?: {
-              message?: string;
-              details?: {
-                insufficientItems?: StockConflictItem[];
-              };
-            };
-          };
-        };
-        message?: string;
-      };
+      const apiErr = err as NormalizedApiError;
 
-      const respData = axiosError.response?.data?.error;
-      const conflicts = respData?.details?.insufficientItems;
-
+      const conflicts = apiErr.details?.insufficientItems;
       if (conflicts && Array.isArray(conflicts)) {
         const conflictMap = new Map<string, StockConflictItem>();
-        for (const c of conflicts) {
-          conflictMap.set(c.sku, c);
-        }
+        conflicts.forEach((c) => conflictMap.set(c.sku, c));
         setStockConflicts(conflictMap);
-        setErrorMessage(
-          'One or more items in your cart exceed available inventory. Please adjust quantities below.',
-        );
-        toastError('Insufficient inventory to complete your order', 'Stock Conflict');
+        setIsConfirmModalOpen(false);
+        toastError('Inventory allocation conflict detected. Please review available stock below.', 'Stock Conflict');
       } else {
-        const msg = respData?.message || axiosError.message || 'Failed to place order. Please try again.';
-        setErrorMessage(msg);
-        toastError(msg, 'Order Failed');
+        toastError(apiErr.message || 'Failed to place order. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // If order was just placed, display Checkout Result screen
+  if (confirmedOrder) {
+    return (
+      <div className={styles.orderSuccessContainer}>
+        <div className={styles.successIcon}>
+          <CheckCircle2 size={40} />
+        </div>
+        <h1 style={{ fontSize: 'var(--font-2xl)', fontWeight: 800, marginBottom: 'var(--space-2)' }}>
+          Order Confirmed!
+        </h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)', marginBottom: 'var(--space-6)' }}>
+          Thank you for your order. Your warehouse fulfillment request has been received and scheduled.
+        </p>
+
+        <div
+          style={{
+            backgroundColor: 'var(--bg-muted)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 'var(--space-4)',
+            textAlign: 'left',
+            marginBottom: 'var(--space-6)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-2)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-sm)' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Order Number:</span>
+            <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+              {confirmedOrder.orderNumber}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-sm)' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Status:</span>
+            <StatusBadge status={confirmedOrder.status} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-sm)' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Total Amount:</span>
+            <span style={{ fontWeight: 800, color: 'var(--primary)' }}>
+              {formatPrice(confirmedOrder.totalAmount)}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'left', marginBottom: 'var(--space-6)' }}>
+          <h4 style={{ fontSize: 'var(--font-sm)', fontWeight: 700, marginBottom: 4 }}>What&apos;s Next?</h4>
+          <ul style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', paddingLeft: 'var(--space-4)', lineHeight: 1.6 }}>
+            <li>Our warehouse team will assemble your packing units.</li>
+            <li>An administrator will confirm shipment dispatch once packages are palletized.</li>
+            <li>Track live fulfillment progress anytime from the Orders tab.</li>
+          </ul>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-3)' }}>
+          <Button variant="primary" onClick={() => navigate('/orders')}>
+            Track Order Details
+          </Button>
+          <Button variant="secondary" onClick={() => navigate('/products')}>
+            Continue Shopping
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty cart view
   if (items.length === 0) {
     return (
-      <div className="empty-state card">
-        <div className="empty-state__icon">&#128722;</div>
-        <h2 className="empty-state__title">Your cart is empty</h2>
-        <p className="empty-state__desc">
-          Browse our catalog to select products and add them to your order.
-        </p>
-        <Link to="/products" className="btn btn--primary">
-          Explore Products
-        </Link>
+      <div style={{ padding: '60px var(--space-4)' }}>
+        <EmptyState
+          icon={<ShoppingBag size={40} />}
+          title="Your shopping cart is empty"
+          description="Browse our warehouse inventory catalog to select packing cartons, strapping, or protective cushioning."
+          action={
+            <Button variant="primary" onClick={() => navigate('/products')}>
+              Explore Catalog
+            </Button>
+          }
+        />
       </div>
     );
   }
 
   return (
     <div>
-      <div className="toolbar">
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700 }}>Shopping Cart</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)', marginTop: 2 }}>
-            Review selected items and proceed to order placement
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="btn btn--secondary btn--sm"
-          onClick={clearCart}
-          disabled={isSubmitting}
-        >
-          Clear Cart
-        </button>
+      {/* Title */}
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 style={{ fontSize: 'var(--font-2xl)', fontWeight: 800 }}>Shopping Cart</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)', marginTop: 2 }}>
+          Review selected warehouse materials and proceed to order confirmation
+        </p>
       </div>
 
-      {/* VIEW-only Warning Alert */}
+      {/* VIEW-only restriction banner */}
       {isViewOnly && (
-        <div className="alert alert--warning" role="alert">
-          <strong>Restricted Access:</strong> Your account is assigned <strong>VIEW</strong>-only access.
-          You cannot place orders. Please contact an administrator if you require order creation privileges.
+        <div
+          role="alert"
+          style={{
+            padding: 'var(--space-3) var(--space-4)',
+            backgroundColor: 'var(--color-warning-light)',
+            color: 'var(--color-warning-text)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--color-warning-border)',
+            fontSize: 'var(--font-sm)',
+            marginBottom: 'var(--space-6)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+          }}
+        >
+          <ShieldAlert size={18} />
+          <span>
+            <strong>Restricted Access:</strong> Your account is assigned VIEW-only access. You can
+            inspect cart totals, but order placement is disabled.
+          </span>
         </div>
       )}
 
-      {/* Error Alert */}
-      {errorMessage && (
-        <div className="alert alert--danger" role="alert">
-          {errorMessage}
+      {/* 409 Resolution Alert if present */}
+      {stockConflicts.size > 0 && (
+        <div
+          role="alert"
+          style={{
+            padding: 'var(--space-4)',
+            backgroundColor: 'var(--color-danger-light)',
+            color: 'var(--color-danger-text)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--color-danger-border)',
+            marginBottom: 'var(--space-6)',
+            fontSize: 'var(--font-sm)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, marginBottom: 4 }}>
+            <AlertTriangle size={18} />
+            <span>Inventory Conflicts Detected (HTTP 409)</span>
+          </div>
+          <p style={{ fontSize: 'var(--font-xs)', color: 'var(--color-danger-text)' }}>
+            One or more items in your cart exceed available stock. Use the quick resolution actions below to adjust or remove conflicting quantities.
+          </p>
         </div>
       )}
 
-      <div className="cart-layout">
-        {/* Cart Items Table */}
-        <div className="table-wrapper">
-          <table className="table">
+      <div className={styles.layout}>
+        {/* Line Items Table */}
+        <div className={styles.tableWrapper}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr>
-                <th>Product</th>
-                <th>Price</th>
-                <th>Quantity</th>
-                <th>Subtotal</th>
-                <th>Action</th>
+              <tr style={{ backgroundColor: 'var(--bg-muted)', borderBottom: '1px solid var(--border-default)' }}>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                  PRODUCT
+                </th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                  PRICE
+                </th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                  QUANTITY
+                </th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>
+                  SUBTOTAL
+                </th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', width: 48 }} aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
               {items.map((item) => {
                 const conflict = stockConflicts.get(item.sku);
-                const itemPriceCents = Math.round(parseFloat(item.price) * 100);
-                const subtotal = ((itemPriceCents * item.qty) / 100).toFixed(2);
+                const priceCents = Math.round(parseFloat(item.price) * 100);
+                const subtotal = ((priceCents * item.qty) / 100).toFixed(2);
 
                 return (
                   <tr
                     key={item.productId}
-                    style={conflict ? { background: '#fef2f2' } : undefined}
+                    className={conflict ? styles.conflictItem : undefined}
+                    style={{ borderBottom: '1px solid var(--border-subtle)' }}
                   >
-                    <td>
-                      {(() => {
-                        const metaInfo = getProductMetadata(item.sku, item.name, item.imageUrl);
-                        return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <img
-                              src={metaInfo.image}
-                              alt={item.name}
-                              className="product-thumb"
-                              loading="lazy"
-                            />
-                            <div>
-                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{item.name}</div>
-                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
-                                SKU: {item.sku} &bull; <span style={{ color: 'var(--primary)', fontWeight: 500 }}>{metaInfo.category}</span>
-                              </div>
-                              {conflict && (
-                                <div
-                                  style={{
-                                    color: 'var(--danger)',
-                                    fontSize: 'var(--font-size-xs)',
-                                    fontWeight: 600,
-                                    marginTop: 4,
+                    <td style={{ padding: 'var(--space-4)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                        <SkuGradient sku={item.sku} name={item.name} size="sm" />
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 'var(--font-sm)' }}>
+                            {item.name}
+                          </div>
+                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            {item.sku}
+                          </div>
+
+                          {/* 409 Conflict Resolution Panel per SKU */}
+                          {conflict && (
+                            <div className={styles.conflictBox}>
+                              <span>
+                                Available in stock: <strong>{conflict.available}</strong> (You requested{' '}
+                                {conflict.requested})
+                              </span>
+                              <div className={styles.conflictActions}>
+                                {conflict.available > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    style={{ fontSize: '11px', height: 26, padding: '0 8px' }}
+                                    onClick={() => {
+                                      updateQty(item.productId, conflict.available);
+                                      setStockConflicts((prev) => {
+                                        const next = new Map(prev);
+                                        next.delete(item.sku);
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    Adjust to {conflict.available}
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  style={{ fontSize: '11px', height: 26, padding: '0 8px' }}
+                                  onClick={() => {
+                                    removeFromCart(item.productId, false);
+                                    setStockConflicts((prev) => {
+                                      const next = new Map(prev);
+                                      next.delete(item.sku);
+                                      return next;
+                                    });
                                   }}
                                 >
-                                  &bull; Available in warehouse: {conflict.available} (You requested {conflict.requested})
-                                </div>
-                              )}
+                                  Remove
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })()}
-                    </td>
-
-                    <td>${item.price}</td>
-
-                    <td>
-                      <div className="qty-controls">
-                        <button
-                          type="button"
-                          className="qty-btn"
-                          disabled={item.qty <= 1 || isSubmitting}
-                          onClick={() => updateQty(item.productId, item.qty - 1)}
-                          aria-label="Decrease quantity"
-                        >
-                          -
-                        </button>
-                        <span className="qty-display">{item.qty}</span>
-                        <button
-                          type="button"
-                          className="qty-btn"
-                          disabled={item.qty >= item.stockQty || isSubmitting}
-                          onClick={() => updateQty(item.productId, item.qty + 1)}
-                          aria-label="Increase quantity"
-                        >
-                          +
-                        </button>
+                          )}
+                        </div>
                       </div>
                     </td>
 
-                    <td style={{ fontWeight: 600 }}>${subtotal}</td>
+                    <td style={{ padding: 'var(--space-4)', fontSize: 'var(--font-sm)' }}>
+                      {formatPrice(item.price)}
+                    </td>
 
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn--sm btn--danger"
-                        disabled={isSubmitting}
-                        onClick={() => removeFromCart(item.productId)}
-                        aria-label={`Remove ${item.name} from cart`}
-                      >
-                        Remove
-                      </button>
+                    <td style={{ padding: 'var(--space-4)' }}>
+                      <QuantityStepper
+                        value={item.qty}
+                        min={1}
+                        max={item.stockQty}
+                        onChange={(val) => updateQty(item.productId, val)}
+                        ariaLabel={`quantity for ${item.name}`}
+                      />
+                    </td>
+
+                    <td style={{ padding: 'var(--space-4)', fontWeight: 700, fontSize: 'var(--font-sm)', color: 'var(--primary)' }}>
+                      {formatPrice(subtotal)}
+                    </td>
+
+                    <td style={{ padding: 'var(--space-4)', textAlign: 'right' }}>
+                      <IconButton
+                        icon={<Trash2 size={16} />}
+                        ariaLabel={`Remove ${item.name} from cart`}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFromCart(item.productId, true)}
+                      />
                     </td>
                   </tr>
                 );
@@ -239,62 +350,90 @@ export const CartPage: React.FC = () => {
           </table>
         </div>
 
-        {/* Cart Summary */}
-        <div className="cart-summary">
-          <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, marginBottom: 16 }}>
-            Order Summary
-          </h2>
+        {/* Order Summary Card */}
+        <div className={styles.summaryCard}>
+          <div className={styles.summaryTitle}>Order Summary</div>
 
-          <div className="cart-summary__row">
-            <span>Total Units</span>
-            <strong>{itemCount}</strong>
+          <div className={styles.summaryRow}>
+            <span>Line Items:</span>
+            <span>{lineCount} items</span>
           </div>
 
-          <div className="cart-summary__row">
-            <span>Distinct Products</span>
-            <strong>{items.length}</strong>
+          <div className={styles.summaryRow}>
+            <span>Total Units:</span>
+            <span>{itemCount} units</span>
           </div>
 
-          <div className="cart-summary__row">
-            <span>Shipping</span>
-            <strong style={{ color: 'var(--success)' }}>FREE</strong>
+          <div className={styles.summaryRow}>
+            <span>Items Subtotal:</span>
+            <span style={{ fontWeight: 600 }}>{formatPrice(totalAmount)}</span>
           </div>
 
-          <div className="cart-summary__row cart-summary__row--total">
-            <span>Total Amount</span>
-            <span>${totalAmount}</span>
+          <div className={styles.summaryRow}>
+            <span>Warehouse Handling:</span>
+            <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>Free</span>
           </div>
 
-          <div style={{ marginTop: 24 }}>
-            <button
-              type="button"
-              className="btn btn--primary"
-              style={{ width: '100%', padding: '12px' }}
-              disabled={isSubmitting || isViewOnly}
-              onClick={handleCheckout}
-            >
-              {isSubmitting ? (
-                <>
-                  <Spinner size="sm" ariaLabel="Processing order..." />
-                  <span>Placing Order...</span>
-                </>
-              ) : isViewOnly ? (
-                'Order Disabled (VIEW Only)'
-              ) : (
-                'Place Order'
-              )}
-            </button>
+          <div className={`${styles.summaryRow} ${styles.totalRow}`}>
+            <span>Total Amount:</span>
+            <span style={{ color: 'var(--primary)', fontSize: 'var(--font-xl)' }}>
+              {formatPrice(totalAmount)}
+            </span>
+          </div>
 
-            <Link
-              to="/products"
-              className="btn btn--secondary"
-              style={{ width: '100%', marginTop: 8, textAlign: 'center' }}
-            >
-              Continue Shopping
+          <Button
+            variant="primary"
+            fullWidth
+            size="lg"
+            rightIcon={<ArrowRight size={18} />}
+            disabled={isViewOnly || stockConflicts.size > 0}
+            onClick={handleOpenConfirm}
+          >
+            Create Order
+          </Button>
+
+          <div style={{ textAlign: 'center', marginTop: 'var(--space-2)' }}>
+            <Link to="/products" style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
+              &larr; Return to Catalog
             </Link>
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => !isSubmitting && setIsConfirmModalOpen(false)}
+        title="Confirm Order Placement"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              disabled={isSubmitting}
+              onClick={() => setIsConfirmModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={isSubmitting}
+              onClick={handleExecuteCheckout}
+            >
+              Place Order (${totalAmount})
+            </Button>
+          </>
+        }
+      >
+        <p style={{ color: 'var(--text-primary)', marginBottom: 'var(--space-3)' }}>
+          You are about to place an order for <strong>{itemCount} units</strong> totaling{' '}
+          <strong style={{ color: 'var(--primary)' }}>{formatPrice(totalAmount)}</strong>.
+        </p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)' }}>
+          Inventory stock will be allocated immediately and cannot be claimed by other concurrent sessions.
+        </p>
+      </Modal>
     </div>
   );
 };
+
+export default CartPage;

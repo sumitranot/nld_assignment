@@ -1,148 +1,222 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Package, Check, ShieldCheck, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getApiErrorMessage } from '../../api/client';
+import { FormField } from '../../components/ui/FormField';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Button } from '../../components/ui/Button';
+import { IconButton } from '../../components/ui/IconButton';
+import styles from './Auth.module.css';
 
 const registerSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  password: z.string().min(6, 'Password must be minimum 6 characters'),
+  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
   role: z.enum(['USER', 'ADMIN']),
-  access: z.enum(['VIEW', 'CREATE']).optional(),
+  access: z.enum(['CREATE', 'VIEW']).optional(),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const RegisterPage: React.FC = () => {
-  const { register: authRegister } = useAuth();
+  const { register: registerAuth } = useAuth();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    mode: 'onChange',
     defaultValues: {
       email: '',
       password: '',
       role: 'USER',
-      access: 'VIEW',
+      access: 'CREATE',
     },
   });
 
   const selectedRole = watch('role');
 
-  const onSubmit = async (data: RegisterFormData): Promise<void> => {
+  const onSubmit = async (data: RegisterFormData) => {
     setServerError(null);
     try {
-      await authRegister({
+      await registerAuth({
         email: data.email,
         password: data.password,
         role: data.role,
-        access: data.role === 'ADMIN' ? undefined : data.access,
+        access: data.role === 'USER' ? data.access || 'VIEW' : undefined,
       });
       navigate('/products', { replace: true });
-    } catch (err) {
-      setServerError(getApiErrorMessage(err, 'Registration failed. Please check your details.'));
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message: unknown }).message)
+          : 'Failed to create account. Please try again.';
+      setServerError(msg);
     }
   };
 
   return (
-    <div className="container" style={{ minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-6) var(--space-4)' }}>
-      <div style={{ width: '100%', maxWidth: '440px' }}>
-        <div className="card">
-          <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
-            <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 'var(--space-1)' }}>
-              Create Account
-            </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
-              Get started with logistics order access
-            </p>
+    <div className={styles.splitLayout}>
+      {/* Brand Panel */}
+      <div className={styles.brandPanel}>
+        <div className={styles.brandPanelPattern} />
+
+        <div className={styles.brandLogo}>
+          <Package size={32} />
+          <span>NLD Logistics</span>
+        </div>
+
+        <div className={styles.brandPitch}>
+          <h1 className={styles.pitchHeading}>Join the Logistics Network</h1>
+          <p className={styles.pitchDesc}>
+            Configure tailored role-based access for procurement teams, warehouse supervisors, and auditing viewers.
+          </p>
+
+          <div className={styles.pitchFeatures}>
+            <div className={styles.pitchItem}>
+              <Check size={18} color="#86efac" />
+              <span>Full inventory catalog access and real-time stock allocation</span>
+            </div>
+            <div className={styles.pitchItem}>
+              <ShieldCheck size={18} color="#86efac" />
+              <span>Granular CREATE vs. VIEW permissions out of the box</span>
+            </div>
+            <div className={styles.pitchItem}>
+              <Zap size={18} color="#86efac" />
+              <span>Instant order confirmation and shipment tracking</span>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.brandFooter}>
+          &copy; {new Date().getFullYear()} NLD Logistics Platform. Enterprise assessment grade.
+        </div>
+      </div>
+
+      {/* Form Panel */}
+      <div className={styles.formPanel}>
+        <div className={styles.formCard}>
+          <div className={styles.formHeader}>
+            <h2 className={styles.formTitle}>Create Account</h2>
+            <p className={styles.formSubtitle}>Get started with warehouse order fulfillment</p>
           </div>
 
           {serverError && (
-            <div className="alert alert--danger" role="alert">
+            <div
+              role="alert"
+              style={{
+                padding: 'var(--space-3) var(--space-4)',
+                backgroundColor: 'var(--color-danger-light)',
+                color: 'var(--color-danger-text)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--font-sm)',
+                marginBottom: 'var(--space-4)',
+                border: '1px solid var(--color-danger-border)',
+              }}
+            >
               {serverError}
             </div>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">
-                Email Address
-              </label>
-              <input
-                id="email"
+            <FormField
+              label="Email Address"
+              htmlFor="reg-email"
+              error={errors.email?.message}
+              required
+            >
+              <Input
+                id="reg-email"
                 type="email"
                 autoComplete="email"
-                className="form-input"
-                placeholder="name@company.com"
+                placeholder="name@example.com"
+                error={Boolean(errors.email)}
                 {...register('email')}
               />
-              {errors.email && <p className="form-error">{errors.email.message}</p>}
-            </div>
+            </FormField>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="password">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
+            <FormField
+              label="Password"
+              htmlFor="reg-password"
+              error={errors.password?.message}
+              helpText="Must be 8+ characters, with at least one uppercase letter and number"
+              required
+            >
+              <Input
+                id="reg-password"
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="new-password"
-                className="form-input"
-                placeholder="At least 6 characters"
+                placeholder="Create a strong password"
+                error={Boolean(errors.password)}
+                rightIcon={
+                  <IconButton
+                    icon={showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    ariaLabel={showPassword ? 'Hide password' : 'Show password'}
+                    size="sm"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                  />
+                }
                 {...register('password')}
               />
-              {errors.password && <p className="form-error">{errors.password.message}</p>}
-            </div>
+            </FormField>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="role">
-                Account Role
-              </label>
-              <select id="role" className="form-select" {...register('role')}>
-                <option value="USER">Standard User (USER)</option>
-                <option value="ADMIN">Administrator (ADMIN)</option>
-              </select>
-              {errors.role && <p className="form-error">{errors.role.message}</p>}
-            </div>
+            <FormField label="Account Role" htmlFor="reg-role" required>
+              <Select id="reg-role" {...register('role')}>
+                <option value="USER">User (Standard Ordering & Tracking)</option>
+                <option value="ADMIN">Administrator (Full Inventory Management)</option>
+              </Select>
+            </FormField>
 
             {selectedRole === 'USER' && (
-              <div className="form-group">
-                <label className="form-label" htmlFor="access">
-                  Permission Access Level
-                </label>
-                <select id="access" className="form-select" {...register('access')}>
-                  <option value="VIEW">VIEW — Browse products and inspect orders</option>
-                  <option value="CREATE">CREATE — Full shopping cart, ordering & cancellation</option>
-                </select>
-                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
-                  CREATE permission automatically implies VIEW rights.
-                </p>
-                {errors.access && <p className="form-error">{errors.access.message}</p>}
-              </div>
+              <FormField
+                label="User Access Level"
+                htmlFor="reg-access"
+                helpText="CREATE can place and cancel orders; VIEW can only explore catalog and review existing orders"
+                required
+              >
+                <Select id="reg-access" {...register('access')}>
+                  <option value="CREATE">CREATE — Full order creation and cancellation</option>
+                  <option value="VIEW">VIEW — Read-only catalog inspection</option>
+                </Select>
+              </FormField>
             )}
 
-            <button
+            <Button
               type="submit"
-              className="btn btn--primary"
-              disabled={isSubmitting}
-              style={{ width: '100%', marginTop: 'var(--space-2)' }}
+              variant="primary"
+              fullWidth
+              loading={isSubmitting}
+              disabled={!isValid || isSubmitting}
+              style={{ marginTop: 'var(--space-4)' }}
             >
-              {isSubmitting ? 'Creating Account...' : 'Complete Registration'}
-            </button>
+              Create Account
+            </Button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: 'var(--space-6)', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
+          <div
+            style={{
+              marginTop: 'var(--space-6)',
+              textAlign: 'center',
+              fontSize: 'var(--font-sm)',
+              color: 'var(--text-muted)',
+            }}
+          >
             Already have an account?{' '}
             <Link to="/login" style={{ fontWeight: 600 }}>
-              Sign In
+              Sign in
             </Link>
           </div>
         </div>
@@ -151,3 +225,4 @@ export const RegisterPage: React.FC = () => {
   );
 };
 
+export default RegisterPage;

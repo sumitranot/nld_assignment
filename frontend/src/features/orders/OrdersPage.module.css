@@ -1,0 +1,159 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--font-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.filterCard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.dateFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dateInputGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dateLabel {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Responsive Cards for Mobile */
+.mobileCards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .mobileCards {
+    display: none;
+  }
+}
+
+.desktopTable {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktopTable {
+    display: block;
+  }
+}
+
+.orderCard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.orderCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.orderNumber {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--primary);
+  font-size: var(--font-sm);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+  position: relative;
+  padding-left: var(--space-6);
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background-color: var(--border-default);
+}
+
+.timelineStep {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -24px;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  border: 2px solid var(--border-strong);
+}
+
+.timelineDotActive {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.timelineTitle {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.timelineTime {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}

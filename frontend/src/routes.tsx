@@ -1,21 +1,50 @@
+import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { LoginPage } from './features/auth/LoginPage';
-import { RegisterPage } from './features/auth/RegisterPage';
-import { ProductsPage } from './features/products/ProductsPage';
-import { CartPage } from './features/cart/CartPage';
-import { OrdersPage } from './features/orders/OrdersPage';
-import { AdminProductsPage } from './pages/AdminProductsPage';
+import { Spinner } from './components/ui/Spinner';
+
+// Lazy-loaded route components for maximum code splitting & Lighthouse performance
+const LoginPage = lazy(() => import('./features/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./features/auth/RegisterPage'));
+const ProductsPage = lazy(() => import('./features/products/ProductsPage'));
+const CartPage = lazy(() => import('./features/cart/CartPage'));
+const OrdersPage = lazy(() => import('./features/orders/OrdersPage'));
+const AdminProductsPage = lazy(() => import('./features/admin/AdminProductsPage'));
+const AdminOrdersPage = lazy(() => import('./features/admin/AdminOrdersPage'));
+const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+
+const pageFallback = (
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '50vh',
+      width: '100%',
+    }}
+  >
+    <Spinner size="lg" ariaLabel="Loading view..." />
+  </div>
+);
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    element: (
+      <Suspense fallback={pageFallback}>
+        <LoginPage />
+      </Suspense>
+    ),
   },
   {
     path: '/register',
-    element: <RegisterPage />,
+    element: (
+      <Suspense fallback={pageFallback}>
+        <RegisterPage />
+      </Suspense>
+    ),
   },
   {
     path: '/',
@@ -31,39 +60,68 @@ export const router = createBrowserRouter([
       },
       {
         path: 'products',
-        element: <ProductsPage />,
+        element: (
+          <Suspense fallback={pageFallback}>
+            <ProductsPage />
+          </Suspense>
+        ),
       },
       {
         path: 'cart',
-        element: <CartPage />,
+        element: (
+          <Suspense fallback={pageFallback}>
+            <CartPage />
+          </Suspense>
+        ),
       },
       {
         path: 'orders',
-        element: <OrdersPage />,
+        element: (
+          <Suspense fallback={pageFallback}>
+            <OrdersPage />
+          </Suspense>
+        ),
       },
       {
         path: 'admin/products',
         element: (
           <ProtectedRoute adminOnly>
-            <AdminProductsPage />
+            <Suspense fallback={pageFallback}>
+              <AdminProductsPage />
+            </Suspense>
           </ProtectedRoute>
         ),
+      },
+      {
+        path: 'admin/orders',
+        element: (
+          <ProtectedRoute adminOnly>
+            <Suspense fallback={pageFallback}>
+              <AdminOrdersPage />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin',
+        element: <Navigate to="/admin/products" replace />,
       },
     ],
   },
   {
+    path: '/403',
+    element: (
+      <Suspense fallback={pageFallback}>
+        <ForbiddenPage />
+      </Suspense>
+    ),
+  },
+  {
     path: '*',
     element: (
-      <div className="container" style={{ padding: 'var(--space-8) 0', textAlign: 'center' }}>
-        <h2>404 — Page Not Found</h2>
-        <p style={{ color: 'var(--text-muted)', margin: 'var(--space-4) 0' }}>
-          The page you requested does not exist.
-        </p>
-        <a href="/products" className="btn btn--primary">
-          Back to Products
-        </a>
-      </div>
+      <Suspense fallback={pageFallback}>
+        <NotFoundPage />
+      </Suspense>
     ),
   },
 ]);
-

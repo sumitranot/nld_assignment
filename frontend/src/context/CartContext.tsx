@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Product } from '../api/types';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 
 export interface CartItem {
   productId: number;
@@ -17,10 +18,15 @@ interface CartContextType {
   itemCount: number;
   lineCount: number;
   totalAmount: string;
+  isDrawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
+  toggleDrawer: () => void;
   addToCart: (product: Product, qty?: number) => { success: boolean; message?: string };
   updateQty: (productId: number, qty: number) => void;
-  removeFromCart: (productId: number) => void;
+  removeFromCart: (productId: number, withUndo?: boolean) => void;
   clearCart: () => void;
+  reconcileWithStock: (freshProducts: Product[]) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,6 +35,8 @@ const CART_STORAGE_KEY = 'nld_cart_items';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const { success } = useToast();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
@@ -47,6 +55,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ignore storage write issues
     }
   }, [items]);
+
+  const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
+  const toggleDrawer = useCallback(() => setIsDrawerOpen((prev) => !prev), []);
 
   const addToCart = useCallback(
     (product: Product, requestedQty = 1): { success: boolean; message?: string } => {
@@ -128,12 +140,68 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
-  const removeFromCart = useCallback((productId: number) => {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
-  }, []);
+  const removeFromCart = useCallback(
+    (productId: number, withUndo = true) => {
+      const targetItem = items.find((i) => i.productId === productId);
+      if (!targetItem) return;
+
+      setItems((prev) => prev.filter((i) => i.productId !== productId));
+
+      if (withUndo) {
+        success(`Removed "${targetItem.name}" from cart`, 'Cart Updated', {
+          label: 'Undo',
+          onClick: () => {
+            setItems((prev) => [...prev, targetItem]);
+          },
+        });
+      }
+    },
+    [items, success],
+  );
 
   const clearCart = useCallback(() => {
     setItems([]);
+  }, []);
+
+  const reconcileWithStock = useCallback((freshProducts: Product[]) => {
+    if (!freshProducts || freshProducts.length === 0) return;
+
+    setItems((prev) => {
+      let changed = false;
+      const productMap = new Map<number, Product>();
+      freshProducts.forEach((p) => productMap.set(p.id, p));
+
+      const updated = prev
+        .map((item) => {
+          const fresh = productMap.get(item.productId);
+          if (!fresh) return item;
+
+          const freshStock = fresh.stockQty;
+          const freshPrice = fresh.price;
+          const freshName = fresh.name;
+
+          if (freshStock <= 0) {
+            changed = true;
+            return null; // out of stock, remove
+          }
+
+          const clampedQty = Math.min(item.qty, freshStock);
+          if (clampedQty !== item.qty || freshPrice !== item.price || freshStock !== item.stockQty) {
+            changed = true;
+            return {
+              ...item,
+              qty: clampedQty,
+              stockQty: freshStock,
+              price: freshPrice,
+              name: freshName,
+            };
+          }
+          return item;
+        })
+        .filter((item): item is CartItem => item !== null);
+
+      return changed ? updated : prev;
+    });
   }, []);
 
   // Compute total items and total amount using integer cents
@@ -162,12 +230,31 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       itemCount,
       lineCount,
       totalAmount,
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      toggleDrawer,
       addToCart,
       updateQty,
       removeFromCart,
       clearCart,
+      reconcileWithStock,
     }),
-    [items, itemCount, lineCount, totalAmount, addToCart, updateQty, removeFromCart, clearCart],
+    [
+      items,
+      itemCount,
+      lineCount,
+      totalAmount,
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      toggleDrawer,
+      addToCart,
+      updateQty,
+      removeFromCart,
+      clearCart,
+      reconcileWithStock,
+    ],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
@@ -181,4 +268,3 @@ export const useCart = (): CartContextType => {
   }
   return context;
 };
-

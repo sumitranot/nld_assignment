@@ -1,0 +1,175 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+  box-shadow: var(--shadow-xs);
+  transition: background-color var(--duration-fast) var(--ease-standard),
+              border-color var(--duration-fast) var(--ease-standard);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  height: 64px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  font-size: var(--font-lg);
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.brandLogo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background-color: var(--primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.nav {
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+@media (min-width: 768px) {
+  .nav {
+    display: flex;
+  }
+}
+
+.navLink {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-standard);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.navLink:hover {
+  color: var(--primary);
+  background-color: var(--bg-muted);
+  text-decoration: none;
+}
+
+.navLinkActive {
+  color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cartButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.cartButton:hover {
+  background-color: var(--bg-muted);
+  border-color: var(--border-strong);
+}
+
+.cartBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: var(--primary);
+  color: var(--primary-contrast);
+  font-size: 11px;
+  font-weight: 700;
+  height: 18px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-xs);
+  animation: popIn var(--duration-fast) var(--ease-bounce);
+}
+
+.userMenuTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.userMenuTrigger:hover {
+  background-color: var(--bg-muted);
+  border-color: var(--border-strong);
+}
+
+.mobileMenuBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .mobileMenuBtn {
+    display: none;
+  }
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.6);
+  }
+  to {
+    transform: scale(1);
+  }
+}

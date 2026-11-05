@@ -13,3 +13,4 @@ module.exports = {
     await queryInterface.removeColumn('products', 'image_url');
   },
 };
+

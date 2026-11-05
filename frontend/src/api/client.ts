@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { ApiErrorResponse } from './types';
+import { ApiErrorResponse, NormalizedApiError } from './types';
 
 export const TOKEN_STORAGE_KEY = 'nld_auth_token';
 
@@ -25,24 +25,52 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorResponse>) => {
     if (error.response?.status === 401) {
-      // Clear token and trigger custom auth event for AuthContext listener
       localStorage.removeItem(TOKEN_STORAGE_KEY);
-      window.dispatchEvent(new Event('auth:unauthorized'));
+      window.dispatchEvent(
+        new CustomEvent('auth:unauthorized', {
+          detail: { message: 'Your session has expired. Please sign in again.' },
+        }),
+      );
     }
     return Promise.reject(error);
   },
 );
 
-export const getApiErrorMessage = (error: unknown, fallback = 'An unexpected error occurred'): string => {
+/**
+ * Normalizes any API or client error into a consistent { code, message, details, status } shape.
+ */
+export function normalizeApiError(error: unknown): NormalizedApiError {
   if (axios.isAxiosError(error)) {
     const axiosErr = error as AxiosError<ApiErrorResponse>;
-    if (axiosErr.response?.data?.error?.message) {
-      return axiosErr.response.data.error.message;
+    const data = axiosErr.response?.data;
+    if (data?.error) {
+      return {
+        code: data.error.code || 'API_ERROR',
+        message: data.error.message || 'An error occurred while processing your request.',
+        details: data.error.details as NormalizedApiError['details'],
+        status: axiosErr.response?.status,
+      };
     }
+    return {
+      code: 'NETWORK_ERROR',
+      message: axiosErr.message || 'Network communication error.',
+      status: axiosErr.response?.status,
+    };
   }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return fallback;
-};
 
+  if (error instanceof Error) {
+    return {
+      code: 'CLIENT_ERROR',
+      message: error.message,
+    };
+  }
+
+  return {
+    code: 'UNKNOWN_ERROR',
+    message: 'An unknown error occurred.',
+  };
+}
+
+export const getApiErrorMessage = (error: unknown, fallback = 'An unexpected error occurred'): string => {
+  return normalizeApiError(error).message || fallback;
+};

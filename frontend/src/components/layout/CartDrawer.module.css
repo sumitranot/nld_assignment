@@ -1,0 +1,82 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.itemDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemSku {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+.itemPrice {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--primary);
+  margin-top: 4px;
+}
+
+.itemControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.footerSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.summaryRowTotal {
+  font-size: var(--font-base);
+  font-weight: 700;
+  color: var(--text-primary);
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

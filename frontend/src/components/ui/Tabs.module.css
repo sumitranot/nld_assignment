@@ -1,0 +1,74 @@
+.tabList {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-default);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabList::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast) var(--ease-standard);
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tabActive {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Pills variant */
+.pills {
+  border-bottom: none;
+  padding: var(--space-1) 0;
+}
+
+.pills .tab {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  margin-bottom: 0;
+}
+
+.pills .tab:hover {
+  background-color: var(--bg-muted);
+  border-color: var(--border-strong);
+  color: var(--primary);
+}
+
+.pills .tabActive {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-contrast);
+  box-shadow: var(--shadow-sm);
+}
+
+.pills .tabActive:hover {
+  background-color: var(--primary-hover);
+  color: var(--primary-contrast);
+}

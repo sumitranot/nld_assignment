@@ -1,0 +1,218 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--font-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.searchWrapper {
+  flex: 1;
+  min-width: 260px;
+  max-width: 480px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.viewToggle {
+  display: flex;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--bg-surface);
+}
+
+.toggleBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.toggleBtn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-muted);
+}
+
+.toggleBtnActive {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+/* Grids */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 540px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 840px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1140px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* List view */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Product Card */
+.card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--duration-fast) var(--ease-standard),
+              box-shadow var(--duration-fast) var(--ease-standard),
+              border-color var(--duration-fast) var(--ease-standard);
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-strong);
+}
+
+.cardBody {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.productName {
+  font-size: var(--font-base);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: var(--leading-snug);
+  margin-bottom: var(--space-1);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+}
+
+.productSku {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-bottom: var(--space-4);
+}
+
+.cardFooter {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.priceStockRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* List item specific adjustments */
+.listItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: var(--space-4);
+  gap: var(--space-4);
+}
+
+.listItem .cardBody {
+  padding: 0;
+  flex: 1;
+}
+
+.listItem .productName {
+  min-height: auto;
+}
+
+.listItem .cardFooter {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+}

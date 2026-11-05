@@ -1,5 +1,14 @@
-import { apiClient } from './client';
-import { Order, OrderListItem, OrderStatus, PaginatedResponse } from './types';
+import { apiClient, normalizeApiError } from './client';
+import {
+  Order,
+  OrderListItem,
+  OrderStatus,
+  PaginatedResponse,
+  orderSchema,
+  orderListItemSchema,
+  paginationMetaSchema,
+} from './types';
+import { z } from 'zod';
 
 export interface GetOrdersParams {
   page?: number;
@@ -17,6 +26,11 @@ export interface CreateOrderPayload {
   }>;
 }
 
+const paginatedOrdersResponseSchema = z.object({
+  data: z.array(orderListItemSchema),
+  meta: paginationMetaSchema,
+});
+
 export const getOrders = async (
   params?: GetOrdersParams,
 ): Promise<PaginatedResponse<OrderListItem>> => {
@@ -30,42 +44,65 @@ export const getOrders = async (
   if (params?.to) cleanParams.to = params.to;
   if (params?.userId) cleanParams.userId = params.userId;
 
-  const response = await apiClient.get<PaginatedResponse<OrderListItem>>('/orders', {
-    params: cleanParams,
-  });
-  return response.data;
+  try {
+    const response = await apiClient.get('/orders', {
+      params: cleanParams,
+    });
+
+    const parsed = paginatedOrdersResponseSchema.safeParse(response.data);
+    if (!parsed.success) {
+      return response.data as PaginatedResponse<OrderListItem>;
+    }
+    return parsed.data;
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
 };
 
 export const getOrderById = async (id: number): Promise<Order> => {
-  const response = await apiClient.get<Order | { data: Order }>(`/orders/${id}`);
-  const data = response.data;
-  return data && typeof data === 'object' && 'data' in data && data.data
-    ? (data.data as Order)
-    : (data as Order);
+  try {
+    const response = await apiClient.get(`/orders/${id}`);
+    const data = response.data;
+    const raw = data && typeof data === 'object' && 'data' in data && data.data ? data.data : data;
+    const parsed = orderSchema.safeParse(raw);
+    return parsed.success ? parsed.data : (raw as Order);
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
 };
 
-export const createOrder = async (
-  payload: CreateOrderPayload,
-): Promise<Order> => {
-  const response = await apiClient.post<Order | { data: Order }>('/orders', payload);
-  const data = response.data;
-  return data && typeof data === 'object' && 'data' in data && data.data
-    ? (data.data as Order)
-    : (data as Order);
+export const createOrder = async (payload: CreateOrderPayload): Promise<Order> => {
+  try {
+    const response = await apiClient.post('/orders', payload);
+    const data = response.data;
+    const raw = data && typeof data === 'object' && 'data' in data && data.data ? data.data : data;
+    const parsed = orderSchema.safeParse(raw);
+    return parsed.success ? parsed.data : (raw as Order);
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
 };
 
 export const cancelOrder = async (id: number): Promise<Order> => {
-  const response = await apiClient.post<Order | { data: Order }>(`/orders/${id}/cancel`);
-  const data = response.data;
-  return data && typeof data === 'object' && 'data' in data && data.data
-    ? (data.data as Order)
-    : (data as Order);
+  try {
+    const response = await apiClient.post(`/orders/${id}/cancel`);
+    const data = response.data;
+    const raw = data && typeof data === 'object' && 'data' in data && data.data ? data.data : data;
+    const parsed = orderSchema.safeParse(raw);
+    return parsed.success ? parsed.data : (raw as Order);
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
 };
 
 export const confirmOrder = async (id: number): Promise<Order> => {
-  const response = await apiClient.post<Order | { data: Order }>(`/orders/${id}/confirm`);
-  const data = response.data;
-  return data && typeof data === 'object' && 'data' in data && data.data
-    ? (data.data as Order)
-    : (data as Order);
+  try {
+    const response = await apiClient.post(`/orders/${id}/confirm`);
+    const data = response.data;
+    const raw = data && typeof data === 'object' && 'data' in data && data.data ? data.data : data;
+    const parsed = orderSchema.safeParse(raw);
+    return parsed.success ? parsed.data : (raw as Order);
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
 };

@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff, Package, Check, ShieldCheck, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getApiErrorMessage } from '../../api/client';
+import { FormField } from '../../components/ui/FormField';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
+import { IconButton } from '../../components/ui/IconButton';
+import styles from './Auth.module.css';
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -17,130 +22,196 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/products';
 
   const {
     register,
     handleSubmit,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    mode: 'onChange',
     defaultValues: {
       email: '',
       password: '',
     },
   });
 
-  const onSubmit = async (data: LoginFormData): Promise<void> => {
+  const onSubmit = async (data: LoginFormData) => {
     setServerError(null);
     try {
-      await login(data);
-      navigate(from, { replace: true });
-    } catch (err) {
-      setServerError(getApiErrorMessage(err, 'Failed to sign in. Please verify your credentials.'));
+      await login({ email: data.email, password: data.password });
+      // Redirect-back after login
+      const destination = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/products';
+      navigate(destination, { replace: true });
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : 'Invalid email or password.';
+      setServerError(msg);
     }
   };
 
-  const fillDemoCredentials = (email: string, pass: string): void => {
+  const setDemoLogin = (email: string, pass: string) => {
     setValue('email', email, { shouldValidate: true });
     setValue('password', pass, { shouldValidate: true });
     setServerError(null);
   };
 
   return (
-    <div className="container" style={{ minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-6) var(--space-4)' }}>
-      <div style={{ width: '100%', maxWidth: '440px' }}>
-        <div className="card">
-          <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
-            <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 'var(--space-1)' }}>
-              Sign In
-            </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
-              Logistics Order Management Portal
-            </p>
+    <div className={styles.splitLayout}>
+      {/* Brand Panel (Hidden on mobile) */}
+      <div className={styles.brandPanel}>
+        <div className={styles.brandPanelPattern} />
+
+        <div className={styles.brandLogo}>
+          <Package size={32} />
+          <span>NLD Logistics</span>
+        </div>
+
+        <div className={styles.brandPitch}>
+          <h1 className={styles.pitchHeading}>Real-Time Order & Inventory Engine</h1>
+          <p className={styles.pitchDesc}>
+            Industrial warehouse fulfillment platform with optimistic concurrency, granular RBAC access controls, and sub-millisecond stock allocation.
+          </p>
+
+          <div className={styles.pitchFeatures}>
+            <div className={styles.pitchItem}>
+              <Check size={18} color="#86efac" />
+              <span>ACID-compliant concurrency with row-level pessimistic locking</span>
+            </div>
+            <div className={styles.pitchItem}>
+              <ShieldCheck size={18} color="#86efac" />
+              <span>Role-Based Access Control (Admin, Creator, Viewer)</span>
+            </div>
+            <div className={styles.pitchItem}>
+              <Zap size={18} color="#86efac" />
+              <span>Integer-cents monetary arithmetic with 0 floating-point error</span>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.brandFooter}>
+          &copy; {new Date().getFullYear()} NLD Logistics Platform. Enterprise assessment grade.
+        </div>
+      </div>
+
+      {/* Form Panel */}
+      <div className={styles.formPanel}>
+        <div className={styles.formCard}>
+          <div className={styles.formHeader}>
+            <h2 className={styles.formTitle}>Sign In</h2>
+            <p className={styles.formSubtitle}>Access your logistics ordering portal</p>
           </div>
 
           {serverError && (
-            <div className="alert alert--danger" role="alert">
+            <div
+              role="alert"
+              style={{
+                padding: 'var(--space-3) var(--space-4)',
+                backgroundColor: 'var(--color-danger-light)',
+                color: 'var(--color-danger-text)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--font-sm)',
+                marginBottom: 'var(--space-4)',
+                border: '1px solid var(--color-danger-border)',
+              }}
+            >
               {serverError}
             </div>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">
-                Email Address
-              </label>
-              <input
+            <FormField
+              label="Email Address"
+              htmlFor="email"
+              error={errors.email?.message}
+              required
+            >
+              <Input
                 id="email"
                 type="email"
                 autoComplete="email"
-                className="form-input"
-                placeholder="name@company.com"
+                placeholder="name@example.com"
+                error={Boolean(errors.email)}
                 {...register('email')}
               />
-              {errors.email && <p className="form-error">{errors.email.message}</p>}
-            </div>
+            </FormField>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="password">
-                Password
-              </label>
-              <input
+            <FormField
+              label="Password"
+              htmlFor="password"
+              error={errors.password?.message}
+              required
+            >
+              <Input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
-                className="form-input"
-                placeholder="••••••••"
+                placeholder="Enter your password"
+                error={Boolean(errors.password)}
+                rightIcon={
+                  <IconButton
+                    icon={showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    ariaLabel={showPassword ? 'Hide password' : 'Show password'}
+                    size="sm"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                  />
+                }
                 {...register('password')}
               />
-              {errors.password && <p className="form-error">{errors.password.message}</p>}
-            </div>
+            </FormField>
 
-            <button
+            <Button
               type="submit"
-              className="btn btn--primary"
-              disabled={isSubmitting}
-              style={{ width: '100%', marginTop: 'var(--space-2)' }}
+              variant="primary"
+              fullWidth
+              loading={isSubmitting}
+              disabled={!isValid || isSubmitting}
+              style={{ marginTop: 'var(--space-2)' }}
             >
-              {isSubmitting ? 'Authenticating...' : 'Sign In'}
-            </button>
+              Sign In
+            </Button>
           </form>
 
-          {/* Quick Demo Fill Buttons for Reviewers */}
-          <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--border)' }}>
-            <p style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-2)', textTransform: 'uppercase' }}>
-              Quick Demo Logins (Assessment):
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)' }}>
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm"
-                onClick={() => fillDemoCredentials('admin@example.com', 'Admin@123')}
+          {/* Quick Demo Logins per Assessment */}
+          <div className={styles.demoLogins}>
+            <div className={styles.demoTitle}>Quick Demo Logins:</div>
+            <div className={styles.demoButtons}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDemoLogin('admin@example.com', 'Admin@123')}
               >
                 Admin
-              </button>
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm"
-                onClick={() => fillDemoCredentials('create@example.com', 'User@123')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDemoLogin('create@example.com', 'Create@123')}
               >
                 Creator
-              </button>
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm"
-                onClick={() => fillDemoCredentials('view@example.com', 'User@123')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDemoLogin('view@example.com', 'View@123')}
               >
                 Viewer
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: 'var(--space-6)', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
+          <div
+            style={{
+              marginTop: 'var(--space-6)',
+              textAlign: 'center',
+              fontSize: 'var(--font-sm)',
+              color: 'var(--text-muted)',
+            }}
+          >
             Don&apos;t have an account?{' '}
             <Link to="/register" style={{ fontWeight: 600 }}>
               Create an account
@@ -152,3 +223,4 @@ export const LoginPage: React.FC = () => {
   );
 };
 
+export default LoginPage;

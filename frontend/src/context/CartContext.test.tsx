@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CartProvider, useCart } from './CartContext';
+import { ToastProvider } from './ToastContext';
 import { Product, User } from '../api/types';
 
 let mockUser: User | null = {
@@ -68,9 +69,11 @@ describe('CartContext', () => {
     const root = createRoot(container!);
     await act(async () => {
       root.render(
-        <CartProvider>
-          <TestConsumer />
-        </CartProvider>,
+        <ToastProvider>
+          <CartProvider>
+            <TestConsumer />
+          </CartProvider>
+        </ToastProvider>,
       );
     });
 
@@ -84,9 +87,11 @@ describe('CartContext', () => {
     const root = createRoot(container!);
     await act(async () => {
       root.render(
-        <CartProvider>
-          <TestConsumer />
-        </CartProvider>,
+        <ToastProvider>
+          <CartProvider>
+            <TestConsumer />
+          </CartProvider>
+        </ToastProvider>,
       );
     });
 
@@ -120,9 +125,11 @@ describe('CartContext', () => {
     const root = createRoot(container!);
     await act(async () => {
       root.render(
-        <CartProvider>
-          <TestConsumer />
-        </CartProvider>,
+        <ToastProvider>
+          <CartProvider>
+            <TestConsumer />
+          </CartProvider>
+        </ToastProvider>,
       );
     });
 
@@ -139,9 +146,11 @@ describe('CartContext', () => {
     const root = createRoot(container!);
     await act(async () => {
       root.render(
-        <CartProvider>
-          <TestConsumer />
-        </CartProvider>,
+        <ToastProvider>
+          <CartProvider>
+            <TestConsumer />
+          </CartProvider>
+        </ToastProvider>,
       );
     });
 
@@ -171,9 +180,11 @@ describe('CartContext', () => {
     const root = createRoot(container!);
     await act(async () => {
       root.render(
-        <CartProvider>
-          <TestConsumer />
-        </CartProvider>,
+        <ToastProvider>
+          <CartProvider>
+            <TestConsumer />
+          </CartProvider>
+        </ToastProvider>,
       );
     });
 
@@ -203,9 +214,11 @@ describe('CartContext', () => {
     const root = createRoot(container!);
     await act(async () => {
       root.render(
-        <CartProvider>
-          <TestConsumer />
-        </CartProvider>,
+        <ToastProvider>
+          <CartProvider>
+            <TestConsumer />
+          </CartProvider>
+        </ToastProvider>,
       );
     });
 
