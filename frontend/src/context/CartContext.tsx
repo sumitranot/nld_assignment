@@ -9,6 +9,7 @@ export interface CartItem {
   price: string; // "19.99"
   stockQty: number;
   qty: number;
+  imageUrl?: string | null;
 }
 
 interface CartContextType {
@@ -88,6 +89,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             qty: newQty,
             stockQty: product.stockQty,
             price: product.price,
+            imageUrl: product.imageUrl ?? prev[existingIndex].imageUrl,
           };
           return updated;
         }
@@ -101,6 +103,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             price: product.price,
             stockQty: product.stockQty,
             qty: requestedQty,
+            imageUrl: product.imageUrl,
           },
         ];
       });

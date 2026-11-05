@@ -98,7 +98,7 @@ export const ProductsPage: React.FC = () => {
       return products;
     }
     return products.filter((product) => {
-      const info = getProductMetadata(product.sku, product.name);
+      const info = getProductMetadata(product.sku, product.name, product.imageUrl);
       return info.category.toLowerCase().includes(selectedCategory.toLowerCase()) ||
         selectedCategory.toLowerCase().includes(info.category.toLowerCase());
     });
@@ -257,7 +257,7 @@ export const ProductsPage: React.FC = () => {
           {/* Products Grid */}
           <div className="product-grid">
             {displayedProducts.map((product) => {
-              const metaInfo = getProductMetadata(product.sku, product.name);
+              const metaInfo = getProductMetadata(product.sku, product.name, product.imageUrl);
               const inCartQty = getCartQtyForProduct(product.id);
               const isOutOfStock = product.stockQty <= 0;
               const isMaxInCart = inCartQty >= product.stockQty;

@@ -241,7 +241,24 @@ const CATEGORY_FALLBACK_IMAGES: Record<string, string> = {
   default: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80',
 };
 
-export const getProductMetadata = (sku: string, name = ''): ProductMetaInfo => {
+export const getProductMetadata = (
+  sku: string,
+  name = '',
+  customImageUrl?: string | null,
+): ProductMetaInfo => {
+  // 1. If an explicit custom image URL is provided (from create/edit product), prioritize it
+  if (customImageUrl && customImageUrl.trim().length > 0) {
+    const baseInfo = SKU_IMAGE_MAP[sku];
+    return {
+      image: customImageUrl.trim(),
+      category: baseInfo?.category ?? 'Custom Product',
+      rating: baseInfo?.rating ?? 4.9,
+      reviewsCount: baseInfo?.reviewsCount ?? 18,
+      badge: baseInfo?.badge,
+    };
+  }
+
+  // 2. Exact match against curated warehouse SKU catalog
   if (SKU_IMAGE_MAP[sku]) {
     return SKU_IMAGE_MAP[sku];
   }
@@ -281,3 +298,4 @@ export const getProductMetadata = (sku: string, name = ''): ProductMetaInfo => {
     reviewsCount: 24,
   };
 };
+

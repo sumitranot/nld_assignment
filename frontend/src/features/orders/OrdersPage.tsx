@@ -385,7 +385,7 @@ export const OrdersPage: React.FC = () => {
                   {selectedOrder.items?.map((item) => {
                     const priceCents = Math.round(parseFloat(item.unitPrice) * 100);
                     const subtotal = ((priceCents * item.quantity) / 100).toFixed(2);
-                    const meta = getProductMetadata(item.product?.sku ?? '', item.product?.name ?? '');
+                    const meta = getProductMetadata(item.product?.sku ?? '', item.product?.name ?? '', item.product?.imageUrl);
 
                     return (
                       <tr key={item.id}>

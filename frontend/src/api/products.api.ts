@@ -12,6 +12,7 @@ export interface CreateProductInput {
   sku: string;
   stockQty: number;
   price: string;
+  imageUrl?: string | null;
 }
 
 export interface UpdateProductInput {
@@ -19,6 +20,7 @@ export interface UpdateProductInput {
   sku?: string;
   stockQty?: number;
   price?: string;
+  imageUrl?: string | null;
 }
 
 export const getProducts = async (

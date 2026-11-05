@@ -26,6 +26,13 @@ export const productIdParamSchema = z.object({
   id: z.coerce.number().int().positive({ message: 'Product ID must be a positive integer' }),
 });
 
+const imageUrlField = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .transform((val) => (val && val.length > 0 ? val : null));
+
 export const createProductSchema = z.object({
   name: z.string({ required_error: 'Product name is required' }).min(1).trim(),
   sku: z
@@ -38,6 +45,7 @@ export const createProductSchema = z.object({
     .int('Stock quantity must be an integer')
     .min(0, 'Stock quantity cannot be negative'),
   price: priceField,
+  imageUrl: imageUrlField,
 });
 
 export const updateProductSchema = z
@@ -55,6 +63,7 @@ export const updateProductSchema = z
       .min(0, 'Stock quantity cannot be negative')
       .optional(),
     price: priceField.optional(),
+    imageUrl: imageUrlField,
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field must be provided to update',

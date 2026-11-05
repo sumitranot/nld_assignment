@@ -3,6 +3,7 @@ export interface CreateProductDTO {
   sku: string;
   stockQty: number;
   price: string;
+  imageUrl?: string | null;
 }
 
 export interface UpdateProductDTO {
@@ -10,6 +11,7 @@ export interface UpdateProductDTO {
   sku?: string;
   stockQty?: number;
   price?: string;
+  imageUrl?: string | null;
 }
 
 export interface ProductQueryFilters {

@@ -161,7 +161,7 @@ export const CartPage: React.FC = () => {
                   >
                     <td>
                       {(() => {
-                        const metaInfo = getProductMetadata(item.sku, item.name);
+                        const metaInfo = getProductMetadata(item.sku, item.name, item.imageUrl);
                         return (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                             <img

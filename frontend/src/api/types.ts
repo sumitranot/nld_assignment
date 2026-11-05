@@ -15,6 +15,7 @@ export interface Product {
   sku: string;
   stockQty: number;
   price: string;
+  imageUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -77,6 +77,7 @@ describe('Products API Integration Tests', () => {
           sku: newSku,
           stockQty: 50,
           price: '89.99',
+          imageUrl: 'https://images.unsplash.com/photo-custom-test.jpg',
         });
 
       expect(res.status).toBe(201);
@@ -84,6 +85,7 @@ describe('Products API Integration Tests', () => {
       expect(res.body.sku).toBe(newSku);
       expect(res.body.stockQty).toBe(50);
       expect(res.body.price).toBe('89.99');
+      expect(res.body.imageUrl).toBe('https://images.unsplash.com/photo-custom-test.jpg');
     });
 
     it('forbids regular USER from creating products with 403 Forbidden', async () => {
@@ -150,11 +152,13 @@ describe('Products API Integration Tests', () => {
         .send({
           stockQty: 175,
           price: '99.50',
+          imageUrl: 'https://images.unsplash.com/photo-updated-custom.jpg',
         });
 
       expect(res.status).toBe(200);
       expect(res.body.stockQty).toBe(175);
       expect(res.body.price).toBe('99.50');
+      expect(res.body.imageUrl).toBe('https://images.unsplash.com/photo-updated-custom.jpg');
     });
 
     it('forbids regular USER from updating product with 403 Forbidden', async () => {

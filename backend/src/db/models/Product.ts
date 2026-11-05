@@ -7,13 +7,14 @@ export interface ProductAttributes {
   sku: string;
   stockQty: number;
   price: string;
+  imageUrl?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export type ProductCreationAttributes = Optional<
   ProductAttributes,
-  'id' | 'stockQty' | 'createdAt' | 'updatedAt'
+  'id' | 'stockQty' | 'imageUrl' | 'createdAt' | 'updatedAt'
 >;
 
 export class Product
@@ -25,6 +26,7 @@ export class Product
   declare sku: string;
   declare stockQty: number;
   declare price: string;
+  declare imageUrl: string | null;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
@@ -58,6 +60,11 @@ Product.init(
     price: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
+    },
+    imageUrl: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'image_url',
     },
   },
   {

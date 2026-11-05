@@ -13,6 +13,7 @@ interface ProductFormData {
   sku: string;
   stockQty: number;
   price: string;
+  imageUrl: string;
 }
 
 const initialFormData: ProductFormData = {
@@ -20,6 +21,7 @@ const initialFormData: ProductFormData = {
   sku: '',
   stockQty: 0,
   price: '',
+  imageUrl: '',
 };
 
 export const AdminProductsPage: React.FC = () => {
@@ -88,6 +90,7 @@ export const AdminProductsPage: React.FC = () => {
       sku: product.sku,
       stockQty: product.stockQty,
       price: product.price,
+      imageUrl: product.imageUrl || '',
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -140,6 +143,7 @@ export const AdminProductsPage: React.FC = () => {
         sku: formData.sku.trim().toUpperCase(),
         stockQty: Number(formData.stockQty),
         price: parseFloat(formData.price).toFixed(2),
+        imageUrl: formData.imageUrl.trim() || null,
       };
 
       if (editingProduct) {
@@ -272,7 +276,7 @@ export const AdminProductsPage: React.FC = () => {
                       <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>{p.sku}</td>
                       <td>
                         {(() => {
-                          const meta = getProductMetadata(p.sku, p.name);
+                          const meta = getProductMetadata(p.sku, p.name, p.imageUrl);
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <img
@@ -420,6 +424,123 @@ export const AdminProductsPage: React.FC = () => {
               disabled={isSubmitting}
             />
             {formErrors.price && <div className="form-error">{formErrors.price}</div>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="prod-image">
+              Product Image URL (Optional)
+            </label>
+            <input
+              id="prod-image"
+              type="url"
+              className="form-input"
+              value={formData.imageUrl}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              placeholder="e.g. https://images.unsplash.com/photo-..."
+              disabled={isSubmitting}
+            />
+            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: 4 }}>
+              Direct HTTPS image link. Leave blank to auto-assign default warehouse inventory imagery.
+            </div>
+
+            {/* Quick Sample Presets */}
+            <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Quick Presets:</span>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => setFormData({ ...formData, imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=600&q=80' })}
+              >
+                📦 Box
+              </button>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => setFormData({ ...formData, imageUrl: 'https://images.unsplash.com/photo-1586769852044-692d6e3703f0?auto=format&fit=crop&w=600&q=80' })}
+              >
+                🩹 Tape
+              </button>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => setFormData({ ...formData, imageUrl: 'https://images.unsplash.com/photo-1587293852726-70cdb56c2866?auto=format&fit=crop&w=600&q=80' })}
+              >
+                🪵 Pallet
+              </button>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => setFormData({ ...formData, imageUrl: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80' })}
+              >
+                📜 Stretch Wrap
+              </button>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => setFormData({ ...formData, imageUrl: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80' })}
+              >
+                🫧 Bubble Cushion
+              </button>
+            </div>
+
+            {/* Live Image Preview */}
+            {formData.imageUrl.trim() && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 10,
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                }}
+              >
+                <img
+                  src={formData.imageUrl.trim()}
+                  alt="Preview"
+                  style={{
+                    width: 56,
+                    height: 56,
+                    objectFit: 'cover',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    backgroundColor: '#fff',
+                  }}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).alt = 'Image preview unavailable';
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600 }}>Image Live Preview</div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {formData.imageUrl.trim()}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--sm"
+                  style={{ fontSize: '11px' }}
+                  onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                >
+                  Clear
+                </button>
+              </div>
+            )}
           </div>
         </form>
       </Modal>
