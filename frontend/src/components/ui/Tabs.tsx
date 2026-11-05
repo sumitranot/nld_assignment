@@ -62,3 +62,4 @@ export const Tabs: React.FC<TabsProps> = ({
     </div>
   );
 };
+

@@ -76,3 +76,4 @@ describe('Cart 409 conflict resolution logic', () => {
     expect(updated.find((i) => i.sku === 'SKU-002')?.qty).toBe(3);
   });
 });
+

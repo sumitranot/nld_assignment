@@ -122,3 +122,4 @@ describe('ProtectedRoute', () => {
     expect(container!.textContent).toContain('Admin Secret');
   });
 });
+

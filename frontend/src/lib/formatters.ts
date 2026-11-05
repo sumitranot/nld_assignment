@@ -40,3 +40,4 @@ export function formatDateShort(dateString: string | Date | undefined): string {
 export function formatNumber(val: number): string {
   return new Intl.NumberFormat('en-US').format(val);
 }
+

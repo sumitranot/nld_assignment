@@ -46,3 +46,4 @@ export const SkuGradient: React.FC<SkuGradientProps> = ({
     </div>
   );
 };
+

@@ -44,3 +44,4 @@ export function useTheme() {
 
   return { theme, toggleTheme, setTheme, isDark: theme === 'dark' };
 }
+

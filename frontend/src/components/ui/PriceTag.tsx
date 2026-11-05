@@ -50,3 +50,4 @@ export const PriceTag: React.FC<PriceTagProps> = ({
     </span>
   );
 };
+

@@ -41,3 +41,4 @@ export const invalidateOrdersAndProducts = async () => {
     queryClient.invalidateQueries({ queryKey: productKeys.all }),
   ]);
 };
+

@@ -47,3 +47,4 @@ export function getSkuGradient(sku: string, name?: string): SkuGradientInfo {
     accentColor: `hsl(${hue1}, 80%, 75%)`,
   };
 }
+
