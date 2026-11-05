@@ -6,7 +6,7 @@
 
 ## Live Demo
 
-- **URL**: [https://nldassignment.vercel.app/login](https://nldassignment.vercel.app/login)
+- **Production URL**: [https://nldassignment.vercel.app/login](https://nldassignment.vercel.app/login)
 - **Demo Credentials** (seeded accounts):
 
 | Role / Access | Email | Password | Permissions Summary |
@@ -15,7 +15,7 @@
 | **USER (CREATE)** | `create@example.com` | `Create@123` | Catalog browse, cart, checkout, view & cancel own orders |
 | **USER (VIEW)** | `view@example.com` | `View@123` | Read-only catalog & own orders; checkout and cancel disabled (UI explains why) |
 
-*(The login page includes 1-click buttons to instantly populate these accounts).*
+*(The login page provides 1-click buttons to instantly populate these accounts).*
 
 ---
 
@@ -47,27 +47,79 @@ Verified directly against backend middlewares (`authorize`, `requireAccess`) and
 
 ## Architecture
 
-### Directory Tree (2 Levels)
+### Monorepo Directory Structure
+
 ```text
 nld_assignment/
-├── api/                  # Vercel serverless function entrypoint (index.js)
+├── api/
+│   └── index.js                        # Vercel serverless function entrypoint (CommonJS)
 ├── backend/
-│   ├── src/              # Express app, config, middlewares, modules, models, db
-│   ├── Dockerfile        # Container build definition
-│   └── package.json      # Backend scripts and dependencies
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── env.ts                  # Zod-validated environment configuration & fallbacks
+│   │   ├── db/
+│   │   │   ├── migrations/             # Database migrations (users, products, orders, items)
+│   │   │   ├── models/                 # User, Product, Order, OrderItem models & associations
+│   │   │   ├── seeders/                # Seed data for demo users & realistic warehouse products
+│   │   │   └── sequelize.ts            # Sequelize instance, connection pooling & dialect configuration
+│   │   ├── docs/
+│   │   │   └── openapi.json            # OpenAPI 3.0 specification
+│   │   ├── middlewares/
+│   │   │   ├── authenticate.ts         # JWT verification & user session hydration
+│   │   │   ├── authorize.ts            # Role-based guard (e.g. ADMIN only)
+│   │   │   ├── requireAccess.ts        # Granular access check (CREATE implies VIEW, ADMIN bypass)
+│   │   │   ├── rateLimiter.ts          # Express rate limiting
+│   │   │   ├── validate.ts             # Generic Zod request schema validator
+│   │   │   ├── notFound.ts             # 404 handler returning standard error format
+│   │   │   └── errorHandler.ts         # Centralized error handler (AppError, Sequelize, syntax)
+│   │   ├── modules/
+│   │   │   ├── auth/                   # Controller, service, routes, validators, DTOs & tests
+│   │   │   ├── products/               # Inventory CRUD, ILIKE search, DTOs & tests
+│   │   │   └── orders/                 # Checkout, row locks, cancel, confirm, DTOs & tests
+│   │   ├── utils/
+│   │   │   ├── AppError.ts             # Operational error hierarchy (BadReq, Unauthorized, etc.)
+│   │   │   ├── money.ts                # Zero-drift integer cents math & formatting
+│   │   │   ├── pagination.ts           # Safe pagination query parser & metadata builder
+│   │   │   ├── logger.ts               # Pino structured JSON logger
+│   │   │   └── asyncHandler.ts         # Express async route wrapper
+│   │   ├── app.ts                      # Express app initialization, Swagger UI, & route mounts
+│   │   └── server.ts                   # Standalone HTTP server bootstrap & graceful shutdown
+│   ├── Dockerfile                      # Containerized backend build
+│   ├── jest.config.js                  # Jest testing configuration
+│   ├── package.json                    # Backend dependencies & npm scripts
+│   └── tsconfig.json                   # Strict TypeScript compiler options
 ├── frontend/
-│   ├── src/              # React components, contexts, features, styles
-│   └── package.json      # Frontend scripts and dependencies
+│   ├── src/
+│   │   ├── api/                        # Axios HTTP client, interceptors & typed API modules
+│   │   ├── components/                 # Button, Input, Modal, Navbar, Pagination, Spinner, Toast
+│   │   ├── context/                    # AuthContext, CartContext, ToastContext
+│   │   ├── features/
+│   │   │   ├── auth/                   # LoginPage, RegisterPage, demo quick-fill buttons
+│   │   │   ├── products/               # ProductsPage, AdminProductsPage, product card, modals
+│   │   │   ├── cart/                   # CartPage, quantity adjustments, checkout flow
+│   │   │   └── orders/                 # OrdersPage, AdminOrdersPage, OrderDetailDrawer
+│   │   ├── hooks/                      # useDebounce, useToast, custom utilities
+│   │   ├── lib/                        # Deterministic SKU gradient generator, money helpers
+│   │   ├── styles/                     # variables.css (tokens), global.css (reset & base rules)
+│   │   ├── App.tsx                     # Root component with provider wrapping
+│   │   ├── routes.tsx                  # ProtectedRoute guards & React Router tree
+│   │   └── main.tsx                    # React DOM entrypoint
+│   ├── package.json                    # Frontend dependencies & npm scripts
+│   ├── tsconfig.json                   # Strict TypeScript configuration
+│   └── vite.config.ts                  # Vite development server, proxy configuration & Vitest setup
 ├── docs/
-│   ├── openapi.json      # OpenAPI 3.0 specification export
-│   └── postman/          # Postman collection
-├── docker-compose.yml    # PostgreSQL 16 (primary :5432, test :5433)
-├── package.json          # Root monorepo orchestration scripts
-└── vercel.json           # Vercel deployment routing & function config
+│   ├── openapi.json                    # Exported OpenAPI 3.0 specification
+│   └── postman/
+│       └── NLD-Assessment.postman_collection.json  # Importable Postman collection with test assertions
+├── docker-compose.yml                  # PostgreSQL 16 containers (primary :5432, test :5433)
+├── package.json                        # Root monorepo orchestration scripts
+└── vercel.json                         # Vercel serverless routing, header bypass & bundle config
 ```
 
 ### Layering & Key Design Principles
+
 Routes dispatch to Controllers for payload validation (Zod), then to Services where business logic and transactions reside:
+
 - **Deadlock-Free Row Locking**: Line items are merged by SKU and product IDs are sorted ascending (`order: [['id', 'ASC']]`) before acquiring `SELECT ... FOR UPDATE` row locks. This enforces a consistent global locking hierarchy and eliminates circular wait deadlocks.
 - **Zero-Negative-Stock Guarantee**: In addition to runtime validation (`stock >= requestedQty`), PostgreSQL enforces `CHECK (stock_qty >= 0)` at the engine level as a safety net against race conditions.
 - **Double-Cancel Safe Inventory Restoration**: Order cancellation runs inside an atomic transaction, verifying `PENDING` or `CONFIRMED` status before marking `CANCELLED` and restoring stock. Subsequent cancellation attempts return `409 Conflict`.
@@ -75,6 +127,7 @@ Routes dispatch to Controllers for payload validation (Zod), then to Services wh
 - **No N+1 Queries**: Order queries calculate item counts via SQL scalar subqueries and leverage composite indexes on `(user_id, created_at DESC)` and `(status, created_at DESC)`.
 
 ### Entity-Relationship Diagram
+
 ```mermaid
 erDiagram
     USERS ||--o{ ORDERS : "places"
@@ -124,51 +177,113 @@ erDiagram
 
 ---
 
-## Getting Started (Local)
+## Available Scripts
 
-### Prerequisites & Quick Start
-Prerequisites: **Node.js 20+**, **npm 10+**, **Docker & Docker Compose**.
+### Root Monorepo (`package.json`)
+
+| Command | Description |
+| :--- | :--- |
+| `npm run build` | Builds both backend (`tsc`) and frontend (`tsc && vite build`) |
+| `npm run build:backend` | Installs dependencies and compiles backend TypeScript |
+| `npm run build:frontend` | Installs dependencies and builds frontend production assets |
+| `npm run db:migrate` | Runs all pending database migrations via Sequelize CLI |
+| `npm run db:seed` | Seeds initial demonstration users and warehouse catalog items |
+| `npm test` | Runs both backend Jest test suite and frontend Vitest suite |
+
+### Backend Service (`backend/package.json`)
+
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Starts development server with hot-reloading (`tsx watch src/server.ts`) |
+| `npm run build` | Compiles TypeScript source to production JavaScript (`tsc`) into `dist/` |
+| `npm start` | Boots compiled production server (`node dist/server.js`) |
+| `npm test` | Executes Jest test suites in-band (`jest --runInBand --forceExit`) |
+| `npm run migrate` | Applies pending database migrations (`npx sequelize-cli db:migrate`) |
+| `npm run seed` | Seeds database with demo accounts and products (`npx sequelize-cli db:seed:all`) |
+| `npm run lint` / `npm run lint:fix` | Runs ESLint analysis / auto-fixes formatting issues |
+| `npm run format` | Formats all TypeScript files using Prettier |
+
+### Frontend Application (`frontend/package.json`)
+
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Launches Vite local development server with API proxy on `http://localhost:5173` |
+| `npm run build` | Executes TypeScript typecheck and bundles production assets into `dist/` |
+| `npm run preview` | Locally serves production build for verification |
+| `npm test` | Runs Vitest unit and integration test suites |
+| `npm run lint` / `npm run format` | Runs ESLint check / formats source files with Prettier |
+
+---
+
+## Getting Started (Local Setup & How to Start)
+
+### Prerequisites
+
+- **Node.js**: v20.x or higher
+- **npm**: v10.x or higher
+- **Docker & Docker Compose** (for local PostgreSQL containers)
+
+### Step-by-Step Setup
 
 ```bash
-# 1. Clone & start PostgreSQL containers (primary :5432, test :5433)
-git clone https://github.com/sumitranot/nld_assignment.git && cd nld_assignment
+# 1. Clone the repository
+git clone https://github.com/sumitranot/nld_assignment.git
+cd nld_assignment
+
+# 2. Start PostgreSQL primary (port 5432) and test database (port 5433)
 docker compose up -d
 
-# 2. Copy environment configuration & install dependencies
+# 3. Configure backend environment
 cp backend/.env.example backend/.env
-npm install && cd backend && npm install && cd ../frontend && npm install && cd ..
 
-# 3. Run migrations, seed demo data, and start dev servers
-npm run db:migrate && npm run db:seed
-# Backend (http://localhost:3000 | Swagger: /docs)
+# 4. Install dependencies across root, backend, and frontend
+npm install
+cd backend && npm install && cd ..
+cd frontend && npm install && cd ..
+
+# 5. Run database migrations and seed data
+npm run db:migrate
+npm run db:seed
+
+# 6. Start the development servers
+# Terminal 1: Backend service (http://localhost:3000 | Docs: http://localhost:3000/docs)
 cd backend && npm run dev
-# Frontend (http://localhost:5173 - open another terminal)
+
+# Terminal 2: Frontend application (http://localhost:5173)
 cd frontend && npm run dev
 ```
 
 ### Environment Variables (`backend/.env`)
 
-| Variable | Purpose | Example |
+| Variable | Purpose | Example / Default |
 | :--- | :--- | :--- |
-| `NODE_ENV` / `PORT` | Runtime mode and backend HTTP port | `development` / `3000` |
+| `NODE_ENV` | Application environment mode | `development` |
+| `PORT` | Backend HTTP listening port | `3000` |
 | `DB_HOST` / `DB_PORT` | PostgreSQL host and port | `localhost` / `5432` |
-| `DB_NAME` / `DB_USER` / `DB_PASSWORD` | PostgreSQL credentials | `nld_db` / `nld_user` / `nld_password` |
-| `JWT_SECRET` / `JWT_EXPIRES_IN` | JWT signing key ($\ge 32$ chars) and expiry | `nld-super-secure-production-jwt-secret-key-32chars` / `24h` |
+| `DB_NAME` / `DB_USER` / `DB_PASSWORD` | PostgreSQL connection credentials | `nld_db` / `nld_user` / `nld_password` |
+| `JWT_SECRET` | Secret key for signing JWT tokens ($\ge 32$ chars) | `nld-super-secure-production-jwt-secret-key-32chars` |
+| `JWT_EXPIRES_IN` | Token expiration period | `24h` |
 | `CORS_ORIGIN` | Allowed client origin for CORS | `http://localhost:5173` |
 | `ALLOW_ADMIN_REGISTRATION` | Permit public self-registration of `ADMIN` role | `true` (dev) / `false` (prod) |
 
-### Running Tests
+### How to Run Tests
+
 ```bash
-npm test                               # Run all tests (backend Jest + frontend Vitest)
-cd backend && npm test                 # Backend tests only (includes 20-thread concurrency test)
-cd frontend && npm test                # Frontend unit & integration tests only
+# Run all tests across the repository (backend Jest + frontend Vitest)
+npm test
+
+# Run backend tests only (includes 20-thread concurrency stress test in orders.test.ts)
+cd backend && npm test
+
+# Run frontend tests only (CartContext, ProtectedRoute, UI components)
+cd frontend && npm test
 ```
 
 ---
 
 ## API Overview
 
-Interactive Swagger UI: `http://localhost:3000/docs` (OpenAPI: [`docs/openapi.json`](docs/openapi.json) | Postman: [`docs/postman/NLD-Assessment.postman_collection.json`](docs/postman/NLD-Assessment.postman_collection.json)).
+Interactive Swagger UI: `http://localhost:3000/docs` (OpenAPI schema: [`docs/openapi.json`](docs/openapi.json) | Postman: [`docs/postman/NLD-Assessment.postman_collection.json`](docs/postman/NLD-Assessment.postman_collection.json)).
 
 | Method | Endpoint | Auth / Role | Description | Status Codes |
 | :--- | :--- | :--- | :--- | :--- |
