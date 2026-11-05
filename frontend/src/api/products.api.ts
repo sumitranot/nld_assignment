@@ -36,16 +36,22 @@ export const getProducts = async (
 
 export const createProduct = async (
   data: CreateProductInput,
-): Promise<{ data: Product }> => {
-  const response = await apiClient.post<{ data: Product }>('/products', data);
-  return response.data;
+): Promise<Product> => {
+  const response = await apiClient.post<Product | { data: Product }>('/products', data);
+  const respData = response.data;
+  return respData && typeof respData === 'object' && 'data' in respData && respData.data
+    ? (respData.data as Product)
+    : (respData as Product);
 };
 
 export const updateProduct = async (
   id: number,
   data: UpdateProductInput,
-): Promise<{ data: Product }> => {
-  const response = await apiClient.put<{ data: Product }>(`/products/${id}`, data);
-  return response.data;
+): Promise<Product> => {
+  const response = await apiClient.put<Product | { data: Product }>(`/products/${id}`, data);
+  const respData = response.data;
+  return respData && typeof respData === 'object' && 'data' in respData && respData.data
+    ? (respData.data as Product)
+    : (respData as Product);
 };
 

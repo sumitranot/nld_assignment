@@ -80,8 +80,8 @@ export const OrdersPage: React.FC = () => {
     setLoadingDetails(true);
     setSelectedOrder(null);
     try {
-      const response = await getOrderById(orderId);
-      setSelectedOrder(response.data);
+      const order = await getOrderById(orderId);
+      setSelectedOrder(order);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load order details';
       toastError(message);

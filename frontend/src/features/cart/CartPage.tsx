@@ -39,8 +39,7 @@ export const CartPage: React.FC = () => {
         })),
       };
 
-      const response = await createOrder(payload);
-      const createdOrder = response.data;
+      const createdOrder = await createOrder(payload);
 
       clearCart();
       success(`Order #${createdOrder.orderNumber} placed successfully!`, 'Order Confirmed');

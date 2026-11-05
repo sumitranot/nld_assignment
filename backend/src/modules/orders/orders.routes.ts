@@ -47,7 +47,15 @@ router.post(
   asyncHandler((req, res) => OrdersController.cancel(req, res)),
 );
 
-// Confirm order - admin only
+// Confirm order - admin only (supports both POST and PATCH)
+router.post(
+  '/:id/confirm',
+  asyncHandler(authenticate),
+  authorize('ADMIN'),
+  validate({ params: orderIdParamSchema }),
+  asyncHandler((req, res) => OrdersController.confirm(req, res)),
+);
+
 router.patch(
   '/:id/confirm',
   asyncHandler(authenticate),

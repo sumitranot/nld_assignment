@@ -36,25 +36,36 @@ export const getOrders = async (
   return response.data;
 };
 
-export const getOrderById = async (id: number): Promise<{ data: Order }> => {
-  const response = await apiClient.get<{ data: Order }>(`/orders/${id}`);
-  return response.data;
+export const getOrderById = async (id: number): Promise<Order> => {
+  const response = await apiClient.get<Order | { data: Order }>(`/orders/${id}`);
+  const data = response.data;
+  return data && typeof data === 'object' && 'data' in data && data.data
+    ? (data.data as Order)
+    : (data as Order);
 };
 
 export const createOrder = async (
   payload: CreateOrderPayload,
-): Promise<{ data: Order }> => {
-  const response = await apiClient.post<{ data: Order }>('/orders', payload);
-  return response.data;
+): Promise<Order> => {
+  const response = await apiClient.post<Order | { data: Order }>('/orders', payload);
+  const data = response.data;
+  return data && typeof data === 'object' && 'data' in data && data.data
+    ? (data.data as Order)
+    : (data as Order);
 };
 
-export const cancelOrder = async (id: number): Promise<{ data: Order }> => {
-  const response = await apiClient.post<{ data: Order }>(`/orders/${id}/cancel`);
-  return response.data;
+export const cancelOrder = async (id: number): Promise<Order> => {
+  const response = await apiClient.post<Order | { data: Order }>(`/orders/${id}/cancel`);
+  const data = response.data;
+  return data && typeof data === 'object' && 'data' in data && data.data
+    ? (data.data as Order)
+    : (data as Order);
 };
 
-export const confirmOrder = async (id: number): Promise<{ data: Order }> => {
-  const response = await apiClient.post<{ data: Order }>(`/orders/${id}/confirm`);
-  return response.data;
+export const confirmOrder = async (id: number): Promise<Order> => {
+  const response = await apiClient.post<Order | { data: Order }>(`/orders/${id}/confirm`);
+  const data = response.data;
+  return data && typeof data === 'object' && 'data' in data && data.data
+    ? (data.data as Order)
+    : (data as Order);
 };
-
