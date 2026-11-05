@@ -4,10 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.app = void 0;
-const path_1 = __importDefault(require("path"));
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const openapi_json_1 = __importDefault(require("./docs/openapi.json"));
 const env_1 = require("./config/env");
 const logger_1 = require("./utils/logger");
 const auth_routes_1 = require("./modules/auth/auth.routes");
@@ -32,7 +32,7 @@ app.get('/health', (_req, res) => {
 });
 // Interactive Swagger UI & OpenAPI Specification
 app.get('/docs/openapi.json', (_req, res) => {
-    res.sendFile(path_1.default.resolve(__dirname, 'docs/openapi.json'));
+    res.json(openapi_json_1.default);
 });
 app.get('/docs', (_req, res) => {
     res.send(`<!DOCTYPE html>
