@@ -1,0 +1,10 @@
+import { sequelize } from '../sequelize';
+import { User } from './User';
+import { Product } from './Product';
+import { Order } from './Order';
+import { OrderItem } from './OrderItem';
+export { sequelize, User, Product, Order, OrderItem };
+export * from './User';
+export * from './Product';
+export * from './Order';
+export * from './OrderItem';
