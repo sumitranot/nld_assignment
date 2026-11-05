@@ -1,4 +1,5 @@
-import { Op, WhereOptions } from 'sequelize';
+import { Op, WhereOptions, Order } from 'sequelize';
+import { sequelize } from '../../db/sequelize';
 import { Product } from '../../db/models/Product';
 import { ConflictError, NotFoundError } from '../../utils/AppError';
 import { parsePagination, buildPaginationMeta, PaginatedResult } from '../../utils/pagination';
@@ -10,23 +11,43 @@ export class ProductsService {
   ): Promise<PaginatedResult<Product>> {
     const { page, limit, offset } = parsePagination(filters);
 
+    const searchKey = (filters.q || filters.search || '').trim();
     let where: WhereOptions = {};
+    let order: Order = [['id', 'ASC']];
 
-    if (filters.q && filters.q.trim().length > 0) {
-      const searchTerm = `%${filters.q.trim()}%`;
+    if (searchKey.length > 0) {
+      const searchTerm = `%${searchKey}%`;
       where = {
         [Op.or]: [
           { name: { [Op.iLike]: searchTerm } },
           { sku: { [Op.iLike]: searchTerm } },
         ],
       };
+
+      const escaped = sequelize.escape(searchKey.toLowerCase());
+      const escapedPrefix = sequelize.escape(searchKey.toLowerCase() + '%');
+
+      order = [
+        [
+          sequelize.literal(`CASE 
+            WHEN LOWER("Product"."name") = ${escaped} THEN 1
+            WHEN LOWER("Product"."sku") = ${escaped} THEN 2
+            WHEN LOWER("Product"."name") LIKE ${escapedPrefix} THEN 3
+            WHEN LOWER("Product"."sku") LIKE ${escapedPrefix} THEN 4
+            ELSE 5
+          END`),
+          'ASC',
+        ],
+        ['name', 'ASC'],
+        ['id', 'ASC'],
+      ];
     }
 
     const { count, rows } = await Product.findAndCountAll({
       where,
       limit,
       offset,
-      order: [['id', 'ASC']],
+      order,
     });
 
     return {

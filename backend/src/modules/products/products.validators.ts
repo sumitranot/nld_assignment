@@ -19,6 +19,7 @@ export const productQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(10),
   q: z.string().trim().optional(),
+  search: z.string().trim().optional(),
 });
 
 export const productIdParamSchema = z.object({

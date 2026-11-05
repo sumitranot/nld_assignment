@@ -24,11 +24,13 @@ export interface UpdateProductInput {
 export const getProducts = async (
   params?: GetProductsParams,
 ): Promise<PaginatedResponse<Product>> => {
+  const searchTerm = params?.search?.trim() || undefined;
   const response = await apiClient.get<PaginatedResponse<Product>>('/products', {
     params: {
       page: params?.page ?? 1,
       limit: params?.limit ?? 10,
-      search: params?.search ? params.search.trim() : undefined,
+      q: searchTerm,
+      search: searchTerm,
     },
   });
   return response.data;

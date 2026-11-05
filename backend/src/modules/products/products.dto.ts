@@ -16,5 +16,6 @@ export interface ProductQueryFilters {
   page?: number;
   limit?: number;
   q?: string;
+  search?: string;
 }
 
