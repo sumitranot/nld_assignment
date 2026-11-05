@@ -2,6 +2,7 @@ import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import openapiSpec from './docs/openapi.json';
 import { env } from './config/env';
 import { logger } from './utils/logger';
 import { authRoutes } from './modules/auth/auth.routes';
@@ -30,7 +31,7 @@ app.get('/health', (_req, res) => {
 
 // Interactive Swagger UI & OpenAPI Specification
 app.get('/docs/openapi.json', (_req, res) => {
-  res.sendFile(path.resolve(__dirname, 'docs/openapi.json'));
+  res.json(openapiSpec);
 });
 
 app.get('/docs', (_req, res) => {

@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import { app } from '../backend/src/app';
 
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
+export default function handler(req: IncomingMessage, res: ServerResponse) {
   try {
-    const { app } = await import('../backend/src/app');
     return app(req, res);
   } catch (error: unknown) {
     const err = error as Error;
@@ -13,7 +13,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       JSON.stringify({
         error: {
           code: 'SERVERLESS_INVOCATION_ERROR',
-          message: err?.message || 'Server failed to start',
+          message: err?.message || 'Server error',
         },
       }),
     );
