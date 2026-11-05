@@ -1,3 +1,9 @@
+// Ensure pg driver and pg-hstore are traced by Vercel NFT bundler
+require('pg');
+try {
+  require('pg-hstore');
+} catch (_) {}
+
 let app;
 try {
   app = require('../backend/dist/app').app;

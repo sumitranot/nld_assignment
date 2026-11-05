@@ -1,3 +1,5 @@
+// @ts-ignore
+import pg from 'pg';
 import { Sequelize } from 'sequelize';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
@@ -18,6 +20,7 @@ const databaseUrl =
 export const sequelize = databaseUrl
   ? new Sequelize(databaseUrl, {
       dialect: 'postgres',
+      dialectModule: pg,
       dialectOptions: {
         ssl: {
           require: true,
@@ -43,6 +46,7 @@ export const sequelize = databaseUrl
       host: env.DB_HOST,
       port: env.DB_PORT,
       dialect: 'postgres',
+      dialectModule: pg,
       logging:
         env.NODE_ENV === 'development'
           ? (msg: string) => logger.debug({ sql: msg }, 'Sequelize query')

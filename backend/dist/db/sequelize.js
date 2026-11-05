@@ -1,6 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sequelize = void 0;
+// @ts-ignore
+const pg_1 = __importDefault(require("pg"));
 const sequelize_1 = require("sequelize");
 const env_1 = require("../config/env");
 const logger_1 = require("../utils/logger");
@@ -16,6 +21,7 @@ const databaseUrl = process.env.DATABASE_URL ||
 exports.sequelize = databaseUrl
     ? new sequelize_1.Sequelize(databaseUrl, {
         dialect: 'postgres',
+        dialectModule: pg_1.default,
         dialectOptions: {
             ssl: {
                 require: true,
@@ -40,6 +46,7 @@ exports.sequelize = databaseUrl
         host: env_1.env.DB_HOST,
         port: env_1.env.DB_PORT,
         dialect: 'postgres',
+        dialectModule: pg_1.default,
         logging: env_1.env.NODE_ENV === 'development'
             ? (msg) => logger_1.logger.debug({ sql: msg }, 'Sequelize query')
             : false,
