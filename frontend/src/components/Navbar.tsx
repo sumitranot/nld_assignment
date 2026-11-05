@@ -35,6 +35,12 @@ export const Navbar: React.FC<NavbarProps> = ({ cartItemCount: propCount }) => {
               `navbar__link ${isActive ? 'navbar__link--active' : ''}`
             }
           >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 5, verticalAlign: 'text-bottom' }}>
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
             Products
           </NavLink>
 
@@ -44,6 +50,12 @@ export const Navbar: React.FC<NavbarProps> = ({ cartItemCount: propCount }) => {
               `navbar__link ${isActive ? 'navbar__link--active' : ''}`
             }
           >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 5, verticalAlign: 'text-bottom' }}>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
             Orders
           </NavLink>
 
@@ -53,7 +65,27 @@ export const Navbar: React.FC<NavbarProps> = ({ cartItemCount: propCount }) => {
               `navbar__link ${isActive ? 'navbar__link--active' : ''}`
             }
           >
-            Cart {cartItemCount > 0 && <span className="badge badge--user" style={{ marginLeft: 4 }}>{cartItemCount}</span>}
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 5, verticalAlign: 'text-bottom' }}>
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+            Cart
+            {cartItemCount > 0 && (
+              <span
+                style={{
+                  marginLeft: 6,
+                  background: 'var(--primary)',
+                  color: '#ffffff',
+                  borderRadius: '9999px',
+                  padding: '1px 7px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                }}
+              >
+                {cartItemCount}
+              </span>
+            )}
           </NavLink>
 
           {isAdmin && (

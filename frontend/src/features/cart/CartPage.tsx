@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { createOrder } from '../../api/orders.api';
 import { Spinner } from '../../components/Spinner';
+import { getProductMetadata } from '../../utils/productImages';
 
 interface StockConflictItem {
   sku: string;
@@ -159,22 +160,37 @@ export const CartPage: React.FC = () => {
                     style={conflict ? { background: '#fef2f2' } : undefined}
                   >
                     <td>
-                      <div style={{ fontWeight: 600 }}>{item.name}</div>
-                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
-                        SKU: {item.sku}
-                      </div>
-                      {conflict && (
-                        <div
-                          style={{
-                            color: 'var(--danger)',
-                            fontSize: 'var(--font-size-xs)',
-                            fontWeight: 600,
-                            marginTop: 4,
-                          }}
-                        >
-                          &bull; Available in warehouse: {conflict.available} (You requested {conflict.requested})
-                        </div>
-                      )}
+                      {(() => {
+                        const metaInfo = getProductMetadata(item.sku, item.name);
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <img
+                              src={metaInfo.image}
+                              alt={item.name}
+                              className="product-thumb"
+                              loading="lazy"
+                            />
+                            <div>
+                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{item.name}</div>
+                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                                SKU: {item.sku} &bull; <span style={{ color: 'var(--primary)', fontWeight: 500 }}>{metaInfo.category}</span>
+                              </div>
+                              {conflict && (
+                                <div
+                                  style={{
+                                    color: 'var(--danger)',
+                                    fontSize: 'var(--font-size-xs)',
+                                    fontWeight: 600,
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  &bull; Available in warehouse: {conflict.available} (You requested {conflict.requested})
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td>${item.price}</td>

@@ -6,6 +6,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { Spinner } from '../components/Spinner';
 import { Pagination } from '../components/Pagination';
 import { Modal } from '../components/Modal';
+import { getProductMetadata } from '../utils/productImages';
 
 interface ProductFormData {
   name: string;
@@ -268,8 +269,28 @@ export const AdminProductsPage: React.FC = () => {
                       <td style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)' }}>
                         #{p.id}
                       </td>
-                      <td style={{ fontWeight: 600 }}>{p.sku}</td>
-                      <td>{p.name}</td>
+                      <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>{p.sku}</td>
+                      <td>
+                        {(() => {
+                          const meta = getProductMetadata(p.sku, p.name);
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <img
+                                src={meta.image}
+                                alt={p.name}
+                                className="product-thumb product-thumb--sm"
+                                loading="lazy"
+                              />
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{p.name}</div>
+                                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                                  {meta.category}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td>
                         <span style={{ fontWeight: 600, marginRight: 8 }}>{p.stockQty}</span>
                         <span className={`badge ${stockBadgeClass}`}>{stockStatus}</span>

@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { Spinner } from '../../components/Spinner';
 import { Pagination } from '../../components/Pagination';
 import { Modal } from '../../components/Modal';
+import { getProductMetadata } from '../../utils/productImages';
 
 export const OrdersPage: React.FC = () => {
   const { user } = useAuth();
@@ -384,11 +385,27 @@ export const OrdersPage: React.FC = () => {
                   {selectedOrder.items?.map((item) => {
                     const priceCents = Math.round(parseFloat(item.unitPrice) * 100);
                     const subtotal = ((priceCents * item.quantity) / 100).toFixed(2);
+                    const meta = getProductMetadata(item.product?.sku ?? '', item.product?.name ?? '');
 
                     return (
                       <tr key={item.id}>
-                        <td style={{ fontWeight: 500 }}>{item.product?.name ?? `Product #${item.productId}`}</td>
-                        <td style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <img
+                              src={meta.image}
+                              alt={item.product?.name ?? 'Product'}
+                              className="product-thumb product-thumb--sm"
+                              loading="lazy"
+                            />
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{item.product?.name ?? `Product #${item.productId}`}</div>
+                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                                {meta.category}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                           {item.product?.sku ?? '-'}
                         </td>
                         <td>${item.unitPrice}</td>
