@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ProductsService } from './products.service';
-import { CreateProductInput, ProductQueryInput, UpdateProductInput } from './products.validators';
+import { CreateProductDTO } from './products.dto';
+import { ProductQueryInput, UpdateProductInput } from './products.validators';
 
 export class ProductsController {
   static async list(req: Request, res: Response): Promise<void> {
@@ -16,7 +17,7 @@ export class ProductsController {
   }
 
   static async create(req: Request, res: Response): Promise<void> {
-    const body = req.body as CreateProductInput;
+    const body = req.body as unknown as CreateProductDTO;
     const product = await ProductsService.createProduct(body);
     res.status(201).json(product);
   }

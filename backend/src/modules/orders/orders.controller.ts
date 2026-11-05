@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { OrdersService } from './orders.service';
-import { CreateOrderInput, OrderQueryInput } from './orders.validators';
+import { CreateOrderDTO } from './orders.dto';
+import { OrderQueryInput } from './orders.validators';
 
 export class OrdersController {
   static async create(req: Request, res: Response): Promise<void> {
-    const input = req.body as CreateOrderInput;
+    const input = req.body as unknown as CreateOrderDTO;
     const order = await OrdersService.createOrder(req.user!.id, input);
     res.status(201).json(order);
   }
